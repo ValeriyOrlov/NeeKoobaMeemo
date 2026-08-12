@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NeeKoobaMeemo Web Test</title>
+</head>
+<body>
+  <h1>Тест WebSocket соединения</h1>
+  <input type="text" id="msgInput" placeholder="Введите сообщение...">
+  <button onclick="sendMessage()">Отправить</button>
+  <h3>Лог сообщений</h3>
+  <pre id="log"></pre>
+  <script>
+    //подключаемся к WebSocket серверу
+    const ws = new WebSocket("ws://" + window.location.host + "/ws");
+    const log = document.getElementById("log");
+
+    ws.onopen = () => log.innerText += "Соединение установлено!\n";
+    ws.onmessage = (event) => log.innerText += "От сервера:" + event.data + "\n";
+    ws.onclose = () => log.innerText += "Соединение закрыто.\n";
+
+    function sendMessage() {
+      const input = document.getElementById("msgInput");
+      ws.send(input.value);
+      input.value = "";
+    }
+  </script>
+</body>
+</html>
