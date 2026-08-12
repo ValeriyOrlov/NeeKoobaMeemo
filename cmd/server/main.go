@@ -1,6 +1,14 @@
 package main
 
 import (
+	"log"
+	"net/http"
+
+	"github.com/gorilla/websocket"
+)
+
+/*
+import (
 	"fmt"
 	"time"
 
@@ -60,7 +68,7 @@ func main() {
 			fmt.Println("Чтобы начать, нужно бросить кубики!")
 			time.Sleep(1 * time.Second)
 			/*fmt.Println("Правила простые:\nИгра делится на раунды.\nРаунд начинается с бросков кубиков.\n1 равна 100 очкам,\n5 - 50 очков,\nКомбинация из трёх одинаковых кубиков = n*100.\nВ конце броска подсчитываем сумму.\nЕсли выпала комбинация и/или 1 и/или 5 - Очки суммируются.\nМожно записать очки в банк и передать ход сопернику, либо бросить кубики ещё раз.\n Если после броска сумма очков будет равна 0 - очки раунда обнуляются и ход передаётся сопернику.\nЕсли сумма больше 0 - она приплюсовывается к предыдущей.\nВыигрывает тот, кто первый наберёт 3000 очков!")
-			time.Sleep(1 * time.Second)*/
+			time.Sleep(1 * time.Second)
 			fmt.Println("Нажмите 'y', чтобы бросить кубики, 'q' чтобы выйти  ")
 			isStart = false
 		} else if roundScore != 0 {
@@ -113,6 +121,7 @@ func main() {
 					fmt.Printf("%s победил!", bot.Name)
 					return
 				}
+				fmt.Printf("------------Раунд %d---------------\n", roundCount)
 			} else {
 				currentDices := make([]int, 0)
 				for {
@@ -161,4 +170,33 @@ func main() {
 			fmt.Printf("Неожиданный ввод.\nНажми 'y', чтобы бросить кубики,\n'p', чтобы записать очки и передать ход,\n'q' чтобы выйти")
 		}
 	}
+}
+*/
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
+func handleWebSocket(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Printf("handleWebSocket connection error: %w", err)
+		return
+	}
+	defer conn.Close()
+
+	for {
+		messageType, p, err := conn.ReadMessage()
+		if err != nil {
+			break
+		}
+		conn.WriteMessage(messageType, p)
+	}
+}
+func main() {
+	http.Handle("/", http.FileServer(http.Dir("./web")))
+	http.HandleFunc("/ws", handleWebSocket)
+	http.ListenAndServe(":8080", nil)
 }
