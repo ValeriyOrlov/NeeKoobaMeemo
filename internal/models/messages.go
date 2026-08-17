@@ -15,4 +15,5 @@ type EventMessage struct {
 	Score        int            `json:"score,omitempty"` // Очки за раунд
 	Banks        map[string]int `json:"banks,omitempty"` // Банки обоих игроков (имя, очки)
 	ActivePlayer string         `json:"active_player,omitempty"`
+	Pot          int            `json:"pot,omitempty"`
 }

@@ -6,6 +6,7 @@ import (
 	"log"
 	"sync"
 
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/economy"
 	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/models"
 	"github.com/gorilla/websocket"
 )
@@ -24,6 +25,11 @@ type Room struct {
 	Mu      sync.Mutex // защита от гонки данных при одновременных запросах
 	lobby   *Lobby     // Ссылка на родительский менеджер комнат
 
+	// Экономика
+	BetAmount int            // Размер ставки
+	Pot       int            // общий банк
+	Store     *economy.Store // ссылка на хранилище
+
 	// Игровое состояние комнаты
 	IsStarted   bool     // Старт игры
 	CurrentTurn int      // индекс текущего игрока (0 или 1)
@@ -35,13 +41,15 @@ type Room struct {
 	HasRolled   bool     // Флаг броска
 }
 
-func NewRoom(id string, lobby *Lobby) *Room {
+func NewRoom(id string, lobby *Lobby, betAmount int, store *economy.Store) *Room {
 	return &Room{
 		ID:        id,
 		Clients:   make(map[*Client]bool),
 		lobby:     lobby,
 		DiceCount: 6,
 		Banks:     make([]int, 2),
+		BetAmount: betAmount,
+		Store:     store,
 	}
 }
 
@@ -68,9 +76,32 @@ func (r *Room) Broadcast(event models.EventMessage) {
 
 func (r *Room) StartGame() {
 	r.Mu.Lock()
+
+	// 1. Проверяем баланс обоих игроков перед стартом
+	for _, pName := range r.Players {
+		profile := r.Store.GetProfile(pName)
+		if profile.Balance < r.BetAmount {
+			r.Mu.Unlock()
+			// Если денег нет, рассылаем ошибку
+			r.Broadcast(models.EventMessage{
+				Type:    "ERROR",
+				Message: fmt.Sprintf("У игрока %s недостаточно монет для ставки!", pName),
+			})
+			return // отменяем старт игры
+		}
+	}
+
+	// 2. Списываем ставки и формируем банк
+	for _, pName := range r.Players {
+		r.Store.UpdateBalance(pName, -r.BetAmount)
+	}
+	r.Pot = r.BetAmount * len(r.Players)
+
+	// 3. Устанавливаем стартовые флаги
 	r.IsStarted = true
 	r.CurrentTurn = 0
 	r.Mu.Unlock()
+
 	currentBanks := map[string]int{
 		r.Players[0]: r.Banks[0],
 		r.Players[1]: r.Banks[1],
@@ -81,6 +112,7 @@ func (r *Room) StartGame() {
 		Message:      fmt.Sprintf("Игра началась! Первым ходит %s", r.Players[0]),
 		Banks:        currentBanks,
 		ActivePlayer: r.Players[0],
+		Pot:          r.Pot,
 	})
 }
 
@@ -253,6 +285,19 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 
 		// Проверка на победу!
 		if r.Banks[r.CurrentTurn] >= 3000 {
+			// 1. Выдаём куш победителю и засчитываем игру обоим
+			for _, pName := range r.Players {
+				isWinner := (pName == activePlayer)
+
+				moneyDelta := 0
+				if isWinner {
+					moneyDelta = r.Pot // Победитель забирает банк
+				}
+
+				// Обновляем всё за один вызов
+				r.Store.AddGameResult(pName, isWinner, moneyDelta)
+			}
+
 			events = append(events, models.EventMessage{
 				Type:    "GAME_OVER",
 				Message: fmt.Sprintf("Игрок %s победил, набрав %d очков!", activePlayer, r.Banks[r.CurrentTurn]),

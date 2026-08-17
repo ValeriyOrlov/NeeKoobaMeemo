@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/economy"
 	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/game"
 	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/models"
 	"github.com/golang-jwt/jwt"
@@ -88,7 +89,8 @@ func ServeWs(w http.ResponseWriter, r *http.Request, lobby *game.Lobby) {
 	client.ReadPump(room)
 }
 
-var lobby = game.NewLobby()
+var economyStore = economy.NewStore("profiles.json")
+var lobby = game.NewLobby(economyStore, 50)
 
 func main() {
 	http.Handle("/pictures/", http.StripPrefix("/pictures/", http.FileServer(http.Dir("./pictures"))))
