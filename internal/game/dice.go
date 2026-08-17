@@ -23,14 +23,58 @@ func CountDice(dice []int) map[int]int {
 	return counts
 }
 
-func CheckPriceDice(dices map[int]int) bool {
-	hasPriceDice := false
-	for num, count := range dices {
+func CheckPriceDice(counts map[int]int) bool {
+	for num, count := range counts {
 		if num == 1 || num == 5 {
-			hasPriceDice = true
+			return true
 		} else if count >= 3 {
-			hasPriceDice = true
+			return true
 		}
 	}
-	return hasPriceDice
+	return false
+}
+
+// containsAllDice проверяет, что все выбранные кубики есть на столе
+func containsAllDice(tableDice []int, selectedDice []int) bool {
+	tableCopy := make([]int, len(tableDice))
+	copy(tableCopy, tableDice)
+
+	for _, die := range selectedDice {
+		found := false
+		for i, tableDie := range tableCopy {
+			if tableDie == die {
+				// Убираем найденный кубик из копии стола
+				tableCopy = append(tableCopy[:i], tableCopy[i+1:]...)
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+
+	return true
+}
+
+func removeSelectedDice(tableDice []int, selectedDice []int) ([]int, bool) {
+	newTable := make([]int, len(tableDice))
+	copy(newTable, tableDice)
+
+	for _, d := range selectedDice {
+		found := false
+		for i, td := range newTable {
+			if td == d {
+				// Удаляем найденный кубик из оставшихся на столе
+				newTable = append(newTable[:i], newTable[i+1:]...)
+				found = true
+				break
+			}
+		}
+		if !found {
+			// Если мы не нашли кубик, значит клиент прислал неверные данные
+			return tableDice, false
+		}
+	}
+	return newTable, true
 }

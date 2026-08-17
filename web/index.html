@@ -1,30 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NeeKoobaMeemo Web Test</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeeKoobaMeemo</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Тест WebSocket соединения</h1>
-  <input type="text" id="msgInput" placeholder="Введите сообщение...">
-  <button onclick="sendMessage()">Отправить</button>
-  <h3>Лог сообщений</h3>
-  <pre id="log"></pre>
-  <script>
-    //подключаемся к WebSocket серверу
-    const ws = new WebSocket("ws://" + window.location.host + "/ws");
-    const log = document.getElementById("log");
-
-    ws.onopen = () => log.innerText += "Соединение установлено!\n";
-    ws.onmessage = (event) => log.innerText += "От сервера:" + event.data + "\n";
-    ws.onclose = () => log.innerText += "Соединение закрыто.\n";
-
-    function sendMessage() {
-      const input = document.getElementById("msgInput");
-      ws.send(input.value);
-      input.value = "";
-    }
-  </script>
+    <section class="login-screen">
+        <input id="player-name-input" class="login-screen-button" type="text" placeholder="Введите имя...">
+        <button id="player-name-button"  class="login-screen-button">Войти в игру</button>
+    </section>
+    <section class="game-screen">
+        <!--Зона противника-->
+        <div class="player-area opponent-area">
+            <div class="stats-box">
+                 <div class="stat-box left-stat">
+                    <p>Банк: <span id="opponent-bank">0</span></p>
+                </div>
+                <div class="player-profile">
+                    <h3 id="opponent-name">Противник</h3>
+                    <div class="avatar-placeholder">🎲</div>
+                </div>
+                <div class="stat-box right-stat">
+                    <p>Отложено: <span id="opponent-selected">0</span></p>
+                </div>
+            </div>
+        </div>
+        <!-- Игровой стол (Центр)-->
+        <div class="table-area">
+            <p class="game-status">Ожидание начала игры...</p>
+            <div class="dice-container"></div>
+            <ul class="game-log-container"></ul>
+        </div>
+        <!-- Зона игрока (Низ)-->
+        <div class="player-area self-area">
+            <div class="stats-box">
+                <div class="stat-box left-stat">
+                    <p>Банк: <span id="self-bank">0</span></p>
+                </div>
+                <div class="player-profile">
+                    <div class="avatar-placeholder">😎</div>
+                    <h3 id="self-name">Вы</h3>
+                </div>
+                <div class="stat-box right-stat">
+                    <p>Отложено: <span id="self-selected">0</span></p>
+                </div>
+            </div>
+            <!-- Панель управления-->
+            <div class="controls-area">
+                <button class="btn-select">Отложить</button>
+                <button class="btn-roll">
+                    Бросить
+                </button>
+                <button class="btn-bank">В банк</button>
+            </div>
+        </div>
+    </section>
+    <script src="app.js"></script>
 </body>
 </html>
