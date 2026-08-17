@@ -74,3 +74,17 @@ func (s *Store) UpdateBalance(username string, delta int) {
 		s.save()
 	}
 }
+
+func (s *Store) AddGameResult(username string, isWinner bool, moneyDelta int) {
+	s.mu.Unlock()
+	defer s.mu.Unlock()
+
+	if profile, exists := s.Profiles[username]; exists {
+		profile.Balance += moneyDelta
+		profile.Games++
+		if isWinner {
+			profile.Wins++
+		}
+		s.save() // вызываем приватный метод сохранения в файл
+	}
+}
