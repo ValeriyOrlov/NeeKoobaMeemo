@@ -2,9 +2,19 @@ package economy
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
+	"sort"
 	"sync"
 )
+
+type PlayerStore interface {
+	GetProfile(username string) *PlayerProfile
+	UpdateBalance(username string, delta int)
+	AddGameResult(username string, isWinner bool, moneyDelta int)
+	GetAllProfiles() []*PlayerProfile
+	DeductBalance(username string, amount int) error
+}
 
 type PlayerProfile struct {
 	Username string `json:"username"`
@@ -67,7 +77,8 @@ func (s *Store) GetProfile(username string) *PlayerProfile {
 
 // Обновление баланса после победы/поражения
 func (s *Store) UpdateBalance(username string, delta int) {
-	s.mu.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	if profile, exists := s.Profiles[username]; exists {
 		profile.Balance += delta
@@ -76,7 +87,7 @@ func (s *Store) UpdateBalance(username string, delta int) {
 }
 
 func (s *Store) AddGameResult(username string, isWinner bool, moneyDelta int) {
-	s.mu.Unlock()
+	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if profile, exists := s.Profiles[username]; exists {
@@ -87,4 +98,40 @@ func (s *Store) AddGameResult(username string, isWinner bool, moneyDelta int) {
 		}
 		s.save() // вызываем приватный метод сохранения в файл
 	}
+}
+
+func (s *Store) GetAllProfiles() []*PlayerProfile {
+	s.mu.RLock() // разрешаем параллельное чтение
+	defer s.mu.RUnlock()
+
+	profiles := make([]*PlayerProfile, 0, len(s.Profiles))
+	for _, p := range s.Profiles {
+		profiles = append(profiles, p)
+	}
+
+	// Сортируем по количеству золота (по убыванию)
+	sort.Slice(profiles, func(i, j int) bool {
+		return profiles[i].Balance > profiles[j].Balance
+	})
+
+	return profiles
+}
+
+func (s *Store) DeductBalance(username string, amount int) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	profile, exists := s.Profiles[username]
+	if !exists {
+		return fmt.Errorf("профиль не найден")
+	}
+
+	if profile.Balance < amount {
+		return fmt.Errorf("недостаточно золота")
+	}
+
+	profile.Balance -= amount
+	s.save()
+
+	return nil
 }

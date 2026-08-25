@@ -26,9 +26,9 @@ type Room struct {
 	lobby   *Lobby     // Ссылка на родительский менеджер комнат
 
 	// Экономика
-	BetAmount int            // Размер ставки
-	Pot       int            // общий банк
-	Store     *economy.Store // ссылка на хранилище
+	BetAmount int                 // Размер ставки
+	Pot       int                 // общий банк
+	Store     economy.PlayerStore // ссылка на хранилище
 
 	// Игровое состояние комнаты
 	IsStarted   bool     // Старт игры
@@ -41,7 +41,7 @@ type Room struct {
 	HasRolled   bool     // Флаг броска
 }
 
-func NewRoom(id string, lobby *Lobby, betAmount int, store *economy.Store) *Room {
+func NewRoom(id string, lobby *Lobby, betAmount int, store economy.PlayerStore) *Room {
 	return &Room{
 		ID:        id,
 		Clients:   make(map[*Client]bool),
@@ -50,6 +50,29 @@ func NewRoom(id string, lobby *Lobby, betAmount int, store *economy.Store) *Room
 		Banks:     make([]int, 2),
 		BetAmount: betAmount,
 		Store:     store,
+	}
+}
+
+func (r *Room) AddClient(client *Client) {
+	r.Mu.Lock()
+	r.Clients[client] = true
+	// Считаем, сколько именно активных WS-соединений сейчас в комнате
+	activeConnections := len(r.Clients)
+	r.Mu.Unlock()
+
+	// Оповещаем всех (включая только что зашедшего), что кто-то присоединился
+	r.Broadcast(models.EventMessage{
+		Type:    "SYSTEM",
+		Message: fmt.Sprintf("Игрок %s подключился к столу!", client.PlayerName),
+	})
+
+	// Если оба игрока успешно установили WebSocket - соединение и игра ещё не идет
+	r.Mu.Lock()
+	shouldStart := activeConnections == 2 && !r.IsStarted
+	r.Mu.Unlock()
+
+	if shouldStart {
+		r.StartGame()
 	}
 }
 
@@ -76,36 +99,15 @@ func (r *Room) Broadcast(event models.EventMessage) {
 
 func (r *Room) StartGame() {
 	r.Mu.Lock()
-
-	// 1. Проверяем баланс обоих игроков перед стартом
-	for _, pName := range r.Players {
-		profile := r.Store.GetProfile(pName)
-		if profile.Balance < r.BetAmount {
-			r.Mu.Unlock()
-			// Если денег нет, рассылаем ошибку
-			r.Broadcast(models.EventMessage{
-				Type:    "ERROR",
-				Message: fmt.Sprintf("У игрока %s недостаточно монет для ставки!", pName),
-			})
-			return // отменяем старт игры
-		}
-	}
-
-	// 2. Списываем ставки и формируем банк
-	for _, pName := range r.Players {
-		r.Store.UpdateBalance(pName, -r.BetAmount)
-	}
-	r.Pot = r.BetAmount * len(r.Players)
-
-	// 3. Устанавливаем стартовые флаги
 	r.IsStarted = true
 	r.CurrentTurn = 0
-	r.Mu.Unlock()
+	r.Pot = r.BetAmount * len(r.Players)
 
 	currentBanks := map[string]int{
 		r.Players[0]: r.Banks[0],
 		r.Players[1]: r.Banks[1],
 	}
+	r.Mu.Unlock()
 
 	r.Broadcast(models.EventMessage{
 		Type:         "GAME_STARTED",
@@ -188,10 +190,11 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 			}
 
 			events = append(events, models.EventMessage{
-				Type:    "ZONK",
-				Message: "Пу-пу-пуууууу:/ Очки раунда сгорают.",
-				Dice:    r.Dice,
-				Score:   0,
+				Type:         "ZONK",
+				Message:      "Пу-пу-пуууууу:/ Очки раунда сгорают.",
+				Dice:         r.Dice,
+				Score:        0,
+				ActivePlayer: r.Players[r.CurrentTurn],
 			})
 			events = append(events, models.EventMessage{
 				Type:         "TURN_CHANGED",
@@ -200,6 +203,7 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 				ActivePlayer: r.Players[r.CurrentTurn],
 			})
 		} else {
+			fmt.Println("score", r.RoundScore)
 			events = append(events, models.EventMessage{
 				Type:         "DICE_ROLLED",
 				Dice:         r.Dice,
