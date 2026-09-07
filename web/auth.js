@@ -3,6 +3,9 @@ import { loadProfile, authServer } from "./api.js";
 
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
+const registerConfirmModal = document.getElementById('register-confirm-modal');
+const registerConfirmModalCloseBtn = document.getElementById('btn-close-create');
+const formErrorMsg = document.querySelector('.form-error-msg');
 
 // Переключение между входом и регистрацией
 document.getElementById('show-register').addEventListener('click', (e) => {
@@ -15,9 +18,12 @@ document.getElementById('show-login').addEventListener('click', (e) => {
   showScreen('auth');
 });
 
+registerConfirmModalCloseBtn.addEventListener('click', () => registerConfirmModal.close())
+
 // Регистрация
 registerForm.addEventListener('submit', async (e) => {
   e.preventDefault();
+  formErrorMsg.innerText = "";
   const email = document.getElementById('reg-email').value;
   const username = document.getElementById('reg-username').value;
   const password = document.getElementById('reg-password').value;
@@ -30,11 +36,11 @@ registerForm.addEventListener('submit', async (e) => {
     });
 
     if (response.ok) {
-      alert('На указанную Вами почту улетело письмо!\nЧтобы завершить регистрацию, необходимо пройти по ссылке в письме.');
+      registerConfirmModal.showModal();
       showScreen('auth');
     } else {
       const err = await response.text();
-      alert('Ошибка регистрации: ' + err);
+      formErrorMsg.innerText = 'Ошибка регистрации: ' + err;
     }
   } catch (error) {
     console.error('Ошибка сети: ' + error);
@@ -44,6 +50,7 @@ registerForm.addEventListener('submit', async (e) => {
 // Вход
 loginForm.addEventListener('submit', async (e) => {
   e.preventDefault();
+  formErrorMsg.innerText = "";
   const email = document.getElementById('login-email').value;
   const password = document.getElementById('login-password').value;
 
@@ -56,12 +63,14 @@ loginForm.addEventListener('submit', async (e) => {
 
     if (response.ok) {
       const data = await response.json();
+      
       // Сохраняем JWT токен в память в браузера
-      console.log("Ответ Auth-сервера:", data);
       localStorage.setItem('game_token', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
       loadProfile(); // Загружаем данные игрока
     } else {
-      alert('Неверные данные для входа!');
+      const err = await response.text();
+      formErrorMsg.innerText = 'Ошибка авторизации: ' + err;
     }
   } catch (error) {
     console.error('Ошибка сети:', error);

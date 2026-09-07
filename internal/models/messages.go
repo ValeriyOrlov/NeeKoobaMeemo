@@ -4,16 +4,18 @@ package models
 type ActionMessage struct {
 	Type       string `json:"type"`
 	Dice       []int  `json:"dice,omitempty"` // используется для SELECT_DICE
+	Message    string `json:"message,omitempty"`
 	PlayerName string `json:"player_name,omitempty"`
 }
 
 // Сообщения от сервера клиенту
 type EventMessage struct {
-	Type         string         `json:"type"`
-	Message      string         `json:"message,omitempty"`
-	Dice         []int          `json:"dice,omitempty"`  // Кубики на столе
-	Score        int            `json:"score,omitempty"` // Очки за раунд
-	Banks        map[string]int `json:"banks,omitempty"` // Банки обоих игроков (имя, очки)
-	ActivePlayer string         `json:"active_player,omitempty"`
-	Pot          int            `json:"pot,omitempty"`
+	Type         string            `json:"type"`
+	Message      string            `json:"message,omitempty"`
+	Dice         []int             `json:"dice,omitempty"`  // Кубики на столе
+	Score        int               `json:"score,omitempty"` // Очки за раунд
+	Banks        map[string]int    `json:"banks,omitempty"` // Банки обоих игроков (имя, очки)
+	ActivePlayer string            `json:"active_player,omitempty"`
+	Pot          int               `json:"pot,omitempty"`
+	Avatars      map[string]string `json:"avatars,omitempty"`
 }

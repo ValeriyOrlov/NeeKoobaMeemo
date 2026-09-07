@@ -1,6 +1,23 @@
 import { showScreen } from "./ui.js";
-import { getLeaderboard, getRooms, createRoomReq,  joinRoomReq} from "./api.js";
+import {
+  getLeaderboard,
+  getRooms, 
+  createRoomReq,
+  joinRoomReq,
+  getValidToken,
+} from "./api.js";
 import { connectWebSocket } from "./ws.js";
+import { toggleMusic } from "./music.js";
+
+(async () => {
+  // getValidToken проверяет срок годности и при необходимости делает ротацию токенов
+  const token = await getValidToken();
+
+  if (token) {
+    console.log("Загрузка страницы: ищем активную игру...");
+    connectWebSocket(); // запускаем без roomId
+  }
+})
 
 const btnCreateGame = document.getElementById('btn-create-game');
 const btnFindGames = document.getElementById('btn-find-games');
@@ -18,6 +35,57 @@ const roomBetInput = document.getElementById('room-bet-input');
 const btnConfirmCreate = document.getElementById('btn-confirm-create');
 const btnCloseCreate = document.getElementById('btn-close-create')
 const btnCloseFind = document.getElementById('btn-close-find');
+
+const avatarPickerModal = document.getElementById('avatar-picker-modal');
+const lobbyAvatarBtn = document.getElementById('lobby-avatar-btn');
+const closeAvatarBtn = document.getElementById('btn-close-avatar-picker');
+
+const musicBtn = document.getElementById('music-toggle-btn');
+
+musicBtn.addEventListener('click', () => {
+    const isPlaying = toggleMusic();
+    // Визуальная обратная связь
+    if (isPlaying) {
+        musicBtn.innerText = "🪕 Музыка (Вкл)";
+        musicBtn.style.borderColor = "#2ecc71"; 
+    } else {
+        musicBtn.innerText = "🪕 Музыка (Выкл)";
+        musicBtn.style.borderColor = "";
+    }
+});
+
+// Открытие окна при клике на аватар в лобби
+lobbyAvatarBtn.addEventListener('click', () => {
+    avatarPickerModal.showModal();
+});
+
+closeAvatarBtn.addEventListener('click', () => {
+    avatarPickerModal.close();
+});
+
+// Выбор аватара
+document.querySelectorAll('.avatar-option').forEach(img => {
+    img.addEventListener('click', async (e) => {
+        const selectedAvatar = e.target.dataset.avatar;
+        const token = localStorage.getItem('game_token');
+
+        // 1. Сохраняем на бэкенд
+        const response = await fetch('/api/user/avatar', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ avatar: selectedAvatar })
+        });
+
+        if (response.ok) {
+            // 2. Обновляем картинку в лобби
+            document.getElementById('lobby-avatar-img').src = `../pictures/avatars/${selectedAvatar}.jpg`;
+            avatarPickerModal.close();
+        }
+    });
+});
 
 export const logout = () => {
   localStorage.removeItem('game_token');
@@ -77,7 +145,8 @@ export const findGame = async () => {
     }
     roomsData.forEach(room => {
       const newRoomLi = document.createElement('li');
-      newRoomLi.innerText = `${room.creator}\n Ставка: ${room.bet_amount}`;
+      newRoomLi.classList.add('rooms-list-row');
+      newRoomLi.innerText = `Стол игрока ${room.creator}\n Ставка: ${room.bet_amount}`;
       const joinGameBtn = document.createElement('button');
       joinGameBtn.innerText = 'Войти';
       joinGameBtn.classList.add('btn-medieval');
@@ -99,3 +168,9 @@ export const findGame = async () => {
     console.error('Ошибка поиска игры: ', error)
   }
 };
+
+const savedToken = localStorage.getItem('game_token');
+if (savedToken) {
+  console.log("Загрузка страницы: ищем активную игру...");
+  connectWebSocket();
+}

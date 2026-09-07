@@ -1,12 +1,19 @@
 import { handleGameEvent, setGameSocket } from "./game.js";
+import { getValidToken } from "./api.js";
 import { showScreen } from "./ui.js";
 
-export function connectWebSocket(roomId) {
-  const token = localStorage.getItem('game_token');
-  if (!token) return;
+export async function connectWebSocket(roomId) {
+  const token = await getValidToken();
+  if (!token) {
+    console.warn("Нет токена для WebSocket. Игрок не авторизован.");
+    return;
+  };
 
   // Передаём и токен, и ID комнаты в URL
-  const wsUrl = `ws://localhost:8081/ws?token=${token}&room_id=${roomId}`;
+  let wsUrl = `ws://localhost:8081/ws?token=${token}`;
+  if (roomId) {
+    wsUrl += `&room_id=${roomId}`;
+  }
   const socket = new WebSocket(wsUrl);
 
   socket.onopen = () => {
@@ -23,7 +30,14 @@ export function connectWebSocket(roomId) {
     handleGameEvent(msg);
   };
   
-  socket.onerror = (err) => console.error('Ошибка WebSocket:', err);
+  socket.onerror = (err) => {
+    // Ошибка ожидаема, если мы пытались восстановить соединение, но активной игры не было
+    if (!roomId) {
+      console.log('Активных игр для восстановления не найдено');
+      return;
+    }
+    console.error('Ошибка WebSocket:', err);
+  }
   socket.onclose = () => console.log('соединение закрыто');
 
   return socket;

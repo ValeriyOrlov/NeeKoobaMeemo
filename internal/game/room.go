@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/economy"
 	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/models"
@@ -31,33 +32,88 @@ type Room struct {
 	Store     economy.PlayerStore // ссылка на хранилище
 
 	// Игровое состояние комнаты
-	IsStarted   bool     // Старт игры
-	CurrentTurn int      // индекс текущего игрока (0 или 1)
-	Players     []string // Имена двух игроков
-	Dice        []int    // Текущие кубики на столе
-	DiceCount   int      // Количество кубиков для следующего броска
-	RoundScore  int      // Очки за текущий раунд
-	Banks       []int    // Несгораемые банки игроков [Банк_0, Банк_1]
-	HasRolled   bool     // Флаг броска
+	IsStarted   bool                   // Старт игры
+	CurrentTurn int                    // индекс текущего игрока (0 или 1)
+	Players     []string               // Имена двух игроков
+	Dice        []int                  // Текущие кубики на столе
+	DiceCount   int                    // Количество кубиков для следующего броска
+	RoundScore  int                    // Очки за текущий раунд
+	Banks       []int                  // Несгораемые банки игроков [Банк_0, Банк_1]
+	HasRolled   bool                   // Флаг броска
+	TurnTimer   *time.Timer            // Таймер на ход 90 секунд
+	Disconnects map[string]*time.Timer // Таймеры переподключения
 }
 
 func NewRoom(id string, lobby *Lobby, betAmount int, store economy.PlayerStore) *Room {
 	return &Room{
-		ID:        id,
-		Clients:   make(map[*Client]bool),
-		lobby:     lobby,
-		DiceCount: 6,
-		Banks:     make([]int, 2),
-		BetAmount: betAmount,
-		Store:     store,
+		ID:          id,
+		Clients:     make(map[*Client]bool),
+		Disconnects: make(map[string]*time.Timer),
+		lobby:       lobby,
+		DiceCount:   6,
+		Banks:       make([]int, 2),
+		BetAmount:   betAmount,
+		Store:       store,
 	}
 }
 
 func (r *Room) AddClient(client *Client) {
 	r.Mu.Lock()
+
+	// 1. Добавляем имя в список игроков (если его там еще нет)
+	found := false
+	for _, p := range r.Players {
+		if p == client.PlayerName {
+			found = true
+		}
+	}
+	if !found && len(r.Players) < 2 {
+		r.Players = append(r.Players, client.PlayerName)
+	}
 	r.Clients[client] = true
 	// Считаем, сколько именно активных WS-соединений сейчас в комнате
 	activeConnections := len(r.Clients)
+	playerName := client.PlayerName
+	isStarted := r.IsStarted
+
+	// 2. Логика переподключения
+	isReconnection := false
+	if timer, exists := r.Disconnects[playerName]; exists {
+		timer.Stop() // останавливаем таймер сдачи
+		delete(r.Disconnects, playerName)
+		isReconnection = true
+	}
+
+	// 3. Отправляем состояние игры, если это реконнект
+	if isReconnection && isStarted {
+		currentBanks := map[string]int{
+			r.Players[0]: r.Banks[0],
+			r.Players[1]: r.Banks[1],
+		}
+
+		restoreMsg := models.EventMessage{
+			Type:         "GAME_RESTORED",
+			Message:      "Вы успешно переподключились к игре!",
+			Banks:        currentBanks,
+			ActivePlayer: r.Players[r.CurrentTurn],
+			Pot:          r.Pot,
+			Dice:         r.Dice,
+			Score:        r.RoundScore,
+		}
+		r.Mu.Unlock()
+
+		// Отправляем восстановленное состояние лично этому игроку
+		data, _ := json.Marshal(restoreMsg)
+		client.Send <- data
+
+		// Оповещаем противника, что игрок вернулся
+		r.Broadcast(models.EventMessage{
+			Type:    "SYSTEM",
+			Message: fmt.Sprintf("Игрок %s вернулся в игру!", playerName),
+		})
+		return
+	}
+
 	r.Mu.Unlock()
 
 	// Оповещаем всех (включая только что зашедшего), что кто-то присоединился
@@ -91,10 +147,126 @@ func (r *Room) Broadcast(event models.EventMessage) {
 		select {
 		case client.Send <- data:
 		default:
-			close(client.Send)
 			delete(r.Clients, client)
 		}
 	}
+}
+
+// === ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ТАЙМЕРА И ЗАВЕРШЕНИЯ ИГРЫ ===
+
+// resetTurnTimerLocked перезапускает таймер на 90 секунд.
+// ВАЖНО: Вызывать только при заблокированном r.Mu!
+func (r *Room) resetTurnTimerLocked() {
+	if r.TurnTimer != nil {
+		r.TurnTimer.Stop()
+	}
+
+	activePlayer := r.Players[r.CurrentTurn]
+
+	r.TurnTimer = time.AfterFunc(90*time.Second, func() {
+		r.Mu.Lock()
+		// Если игра уже закончилась или ход сменился раньше времени
+		if !r.IsStarted || r.Players[r.CurrentTurn] != activePlayer {
+			r.Mu.Unlock()
+			return
+		}
+
+		r.HasRolled = false
+
+		// Автоматически сохраняем отложенные очки в банк (даже если там 0)
+		r.Banks[r.CurrentTurn] += r.RoundScore
+
+		var events []models.EventMessage
+
+		// Проверяем, не набрал ли игрок 3000 очков за счет этого авто-сохранения
+		if r.Banks[r.CurrentTurn] >= 3000 {
+			r.stopTurnTimerLocked()
+			r.IsStarted = false
+
+			for _, pName := range r.Players {
+				isWinner := (pName == activePlayer)
+				moneyDelta := 0
+				if isWinner {
+					moneyDelta = r.Pot
+				}
+				r.Store.AddGameResult(pName, isWinner, moneyDelta)
+			}
+
+			events = append(events, models.EventMessage{
+				Type:    "GAME_OVER",
+				Message: fmt.Sprintf("Время вышло! Отложенные очки принесли победу! Игрок %s набрал %d очков!", activePlayer, r.Banks[r.CurrentTurn]),
+			})
+		} else {
+			// Если очков для победы не хватило — просто передаем ход противнику
+			r.RoundScore = 0
+			r.DiceCount = 6
+			r.CurrentTurn = (r.CurrentTurn + 1) % 2
+			r.Dice = nil
+
+			r.resetTurnTimerLocked() // Сбрасываем таймер уже для нового игрока
+
+			currentBanks := map[string]int{
+				r.Players[0]: r.Banks[0],
+				r.Players[1]: r.Banks[1],
+			}
+			events = append(events, models.EventMessage{
+				Type:         "TURN_CHANGED",
+				Message:      fmt.Sprintf("Время на ход истекло! Очки сохранены. Ход перешёл к %s", r.Players[r.CurrentTurn]),
+				Banks:        currentBanks,
+				ActivePlayer: r.Players[r.CurrentTurn],
+			})
+		}
+
+		r.Mu.Unlock() // Обязательно отпускаем мьютекс ДО рассылки Broadcast
+
+		// Рассылаем события о смене хода или победе всем игрокам
+		for _, e := range events {
+			r.Broadcast(e)
+		}
+
+	})
+}
+
+// stopTurnTimerLocked останавливает таймер.
+// ВАЖНО: Вызывать только при заблокированном r.Mu!
+func (r *Room) stopTurnTimerLocked() {
+	if r.TurnTimer != nil {
+		r.TurnTimer.Stop()
+		r.TurnTimer = nil
+	}
+}
+
+// finishGameBySurrenderLocked начисляет победу сопернику и завершает игру.
+// ВАЖНО: Принимает r.Mu заблокированным, но САМ ОСВОБОЖДАЕТ его перед вызовом Broadcast!
+func (r *Room) finishGameBySurrenderLocked(surrenderedPlayer string, reason string) {
+	r.stopTurnTimerLocked()
+	r.IsStarted = false
+
+	var winner string
+	for _, p := range r.Players {
+		if p != surrenderedPlayer {
+			winner = p
+			break
+		}
+	}
+
+	// Начисляем куш победителю и обновляем статистику в БД
+	for _, pName := range r.Players {
+		isWinner := (pName == winner)
+		moneyDelta := 0
+		if isWinner {
+			moneyDelta = r.Pot
+		}
+		r.Store.AddGameResult(pName, isWinner, moneyDelta)
+	}
+
+	// Отпускаем мьютекс ДО рассылки, так как r.Broadcast внутри сам вызывает r.Mu.Lock()
+	r.Mu.Unlock()
+
+	r.Broadcast(models.EventMessage{
+		Type:    "GAME_OVER",
+		Message: fmt.Sprintf("%s Победил игрок %s!", reason, winner),
+	})
 }
 
 func (r *Room) StartGame() {
@@ -107,6 +279,25 @@ func (r *Room) StartGame() {
 		r.Players[0]: r.Banks[0],
 		r.Players[1]: r.Banks[1],
 	}
+
+	player1 := r.Store.GetProfile(r.Players[0])
+	player2 := r.Store.GetProfile(r.Players[1])
+
+	avatar1 := player1.Avatar
+	if avatar1 == "" {
+		avatar1 = "monk"
+	}
+	avatar2 := player2.Avatar
+	if avatar2 == "" {
+		avatar2 = "monk"
+	}
+
+	avatarsMap := map[string]string{
+		r.Players[0]: avatar1,
+		r.Players[1]: avatar2,
+	}
+	// запускаем таймер на 90 секунд для первого игрока
+	r.resetTurnTimerLocked()
 	r.Mu.Unlock()
 
 	r.Broadcast(models.EventMessage{
@@ -115,23 +306,58 @@ func (r *Room) StartGame() {
 		Banks:        currentBanks,
 		ActivePlayer: r.Players[0],
 		Pot:          r.Pot,
+		Avatars:      avatarsMap,
 	})
 }
 
 func (r *Room) Leave(client *Client) {
 	r.Mu.Lock()
-	delete(r.Clients, client)
+
+	// Безопасное удаление: закрываем канал только 1 раз здесь, чтобы избежать паники
+	if _, ok := r.Clients[client]; ok {
+		delete(r.Clients, client)
+		close(client.Send)
+	}
 	isEmpty := len(r.Clients) == 0
+	playerName := client.PlayerName
+
+	// Если игра ЕЩЕ НЕ началась (кто-то вышел из лобби до старта)
+	if !r.IsStarted {
+		r.Mu.Unlock()
+		if isEmpty {
+			r.lobby.RemoveRoom(r.ID)
+		} else {
+			r.Broadcast(models.EventMessage{
+				Type:    "PLAYER_LEFT",
+				Message: fmt.Sprintf("Игрок %s покинул стол.", playerName),
+			})
+		}
+		return
+	}
+
+	// Если игра ИДЁТ - даём 60 секунд на переподключение
+	timer := time.AfterFunc(60*time.Second, func() {
+		r.Mu.Lock()
+		// Если таймера нет в мапе, значит игрок уже переподключился (AddClient его удалил)
+		if _, exists := r.Disconnects[playerName]; !exists {
+			r.Mu.Unlock()
+			return
+		}
+		delete(r.Disconnects, playerName)
+
+		// Игрок так и не вернулся - засчитываем техническое поражение
+		r.finishGameBySurrenderLocked(playerName, fmt.Sprintf("Игрок %s покинул игру (Тайм-аут подключения).", playerName))
+	})
+
+	r.Disconnects[playerName] = timer
 	r.Mu.Unlock()
 
-	if isEmpty {
-		r.lobby.RemoveRoom(r.ID)
-	} else {
-		r.Broadcast(models.EventMessage{
-			Type:    "PLAYER_LEFT",
-			Message: fmt.Sprintf("Игрок %s покинул игру.", client.PlayerName),
-		})
-	}
+	// Сообщаем противнику, что игрок отвалился
+	r.Broadcast(models.EventMessage{
+		Type:         "PLAYER_DISCONNECTED",
+		Message:      fmt.Sprintf("Игрок %s отключился. Ожидание переподключения (60 сек)...", playerName),
+		ActivePlayer: playerName,
+	})
 }
 
 func (r *Room) sendPrivateError(client *Client, msg string) {
@@ -139,9 +365,12 @@ func (r *Room) sendPrivateError(client *Client, msg string) {
 		Type:    "ERROR",
 		Message: msg,
 	})
-	select {
-	case client.Send <- data:
-	default:
+	// Безопасная проверка: пишем, только если клиент ещё существует
+	if _, ok := r.Clients[client]; ok {
+		select {
+		case client.Send <- data:
+		default:
+		}
 	}
 }
 
@@ -156,7 +385,23 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 		return
 	}
 
-	// 2. Проверяем, чей сейчас ход
+	// === ДЕЙСТВИЯ, ДОСТУПНЫЕ В ЛЮБОЙ МОМЕНТ (Даже не в свой ход) ===
+	switch action.Type {
+	case "CHAT":
+		r.Mu.Unlock()
+		r.Broadcast(models.EventMessage{
+			Type:         "CHAT",
+			Message:      action.Message,
+			ActivePlayer: client.PlayerName,
+		})
+		return
+
+	case "SURRENDER":
+		r.finishGameBySurrenderLocked(client.PlayerName, fmt.Sprintf("Игрок %s сдался.", client.PlayerName))
+		return
+	}
+
+	// 2. Проверка очередности хода
 	activePlayer := r.Players[r.CurrentTurn]
 	if client.PlayerName != activePlayer {
 		r.Mu.Unlock()
@@ -203,7 +448,6 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 				ActivePlayer: r.Players[r.CurrentTurn],
 			})
 		} else {
-			fmt.Println("score", r.RoundScore)
 			events = append(events, models.EventMessage{
 				Type:         "DICE_ROLLED",
 				Dice:         r.Dice,
@@ -289,10 +533,11 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 
 		// Проверка на победу!
 		if r.Banks[r.CurrentTurn] >= 3000 {
+			r.stopTurnTimerLocked()
+			r.IsStarted = false
 			// 1. Выдаём куш победителю и засчитываем игру обоим
 			for _, pName := range r.Players {
 				isWinner := (pName == activePlayer)
-
 				moneyDelta := 0
 				if isWinner {
 					moneyDelta = r.Pot // Победитель забирает банк
@@ -300,6 +545,7 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 
 				// Обновляем всё за один вызов
 				r.Store.AddGameResult(pName, isWinner, moneyDelta)
+				r.Dice = nil
 			}
 
 			events = append(events, models.EventMessage{
@@ -309,7 +555,10 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 		} else {
 			r.RoundScore = 0
 			r.DiceCount = 6
+			r.Dice = nil
 			r.CurrentTurn = (r.CurrentTurn + 1) % 2
+
+			r.resetTurnTimerLocked() // сброс таймера при передаче хода
 			currentBanks := map[string]int{
 				r.Players[0]: r.Banks[0],
 				r.Players[1]: r.Banks[1],

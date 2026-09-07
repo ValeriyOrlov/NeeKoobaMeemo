@@ -1,14 +1,26 @@
 {
+ "Beeba": {
+  "id": 0,
+  "username": "Beeba",
+  "avatar": "monk",
+  "balance": 1000,
+  "wins": 0,
+  "games": 0
+ },
  "Booba": {
+  "id": 0,
   "username": "Booba",
-  "balance": 750,
-  "wins": 1,
-  "games": 1
+  "avatar": "mad_queen",
+  "balance": 701,
+  "wins": 27,
+  "games": 44
  },
  "Booyaka619": {
+  "id": 0,
   "username": "Booyaka619",
-  "balance": 1600,
-  "wins": 0,
-  "games": 1
+  "avatar": "prophet",
+  "balance": 938,
+  "wins": 17,
+  "games": 44
  }
 }

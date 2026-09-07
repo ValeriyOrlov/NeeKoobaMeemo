@@ -89,7 +89,12 @@ func (l *Lobby) JoinRoom(roomID string, username string) (*Room, error) {
 	// Блокируем саму комнату, чтобы никто другой не успел занять место
 	room.Mu.Lock()
 	defer room.Mu.Unlock()
-
+	// Если игрок уже записан в комнату (например, создатель), повторно деньги не списываем
+	for _, p := range room.Players {
+		if p == username {
+			return room, nil
+		}
+	}
 	// ПРоверяем, есть ли ещё место
 	if room.IsStarted || len(room.Players) >= 2 {
 		return nil, fmt.Errorf("комната уже заполнена или игра началась")
@@ -117,4 +122,20 @@ func (l *Lobby) GetRoom(id string) (*Room, error) {
 	}
 
 	return room, nil
+}
+
+func (l *Lobby) FindRoomByDisconnectedPlayer(username string) *Room {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+
+	for _, room := range l.Rooms {
+		room.Mu.Lock()
+		_, exists := room.Disconnects[username]
+		room.Mu.Unlock()
+
+		if exists {
+			return room
+		}
+	}
+	return nil
 }

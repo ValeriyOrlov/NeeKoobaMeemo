@@ -5,21 +5,31 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/config"
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/db"
 	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/economy"
 	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/game"
 	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/handlers"
 	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/ws"
-	"github.com/joho/godotenv"
 )
 
-var economyStore = economy.NewStore("profiles.json")
-var lobby = game.NewLobby(economyStore)
-
 func main() {
-	err := godotenv.Load()
+	// 1. Загрузка конфигурации из пакета config
+	cfg, err := config.Load()
 	if err != nil {
-		log.Fatal("Ошибка при загрузке файла .env")
+		log.Fatalf("Ошибка при загрузке конфигурации: %v", err)
 	}
+
+	// 2. Инициализация базы данных с DSN из конфигуратора
+	database, err := db.InitDB(cfg.DatabaseDSN)
+	if err != nil {
+		log.Fatalf("Не удалось запустить БД: %v", err)
+	}
+	defer database.Close()
+
+	// Внедрение зависимости в стор
+	playerStore := economy.NewDBStore(database)
+	var lobby = game.NewLobby(playerStore)
 
 	http.Handle("/sounds/", http.StripPrefix("/sounds/", http.FileServer(http.Dir("./sounds"))))
 	http.Handle("/pictures/", http.StripPrefix("/pictures/", http.FileServer(http.Dir("./pictures"))))
@@ -38,14 +48,14 @@ func main() {
 		// Извлекаем имя пользователя из токена
 		username := r.Context().Value("username").(string)
 		// Получаем профиль игрока из хранилища
-		profile := economyStore.GetProfile(username)
+		profile := playerStore.GetProfile(username)
 
 		// Отправляем данные обратно в формате JSON
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(profile)
 	}))
 
-	http.HandleFunc("/api/leaderboard", handlers.LeaderboardHandler(economyStore))
+	http.HandleFunc("/api/leaderboard", handlers.LeaderboardHandler(playerStore))
 	http.HandleFunc("/api/rooms", handlers.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -58,6 +68,14 @@ func main() {
 	}))
 
 	http.HandleFunc("/api/rooms/join", handlers.AuthMiddleware(handlers.JoinRoomHandler(lobby)))
+	http.HandleFunc("/api/user/avatar", handlers.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			handlers.UpdateAvatarHandler(lobby.Store)(w, r)
+		default:
+			http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
+		}
+	}))
 
 	port := ":8081"
 	log.Printf("🚀 Сервер NeeKoobaMeemo запущен на http://localhost%s", port)

@@ -20,16 +20,9 @@ var upgrader = websocket.Upgrader{
 func ServeWs(w http.ResponseWriter, r *http.Request, lobby *game.Lobby) {
 	// 1. Получаем токен из URL параметров (ws://localhost:8080/ws?token=eyJ...)
 	tokenStr := r.URL.Query().Get("token")
-	roomID := r.URL.Query().Get("room_id")
-	if tokenStr == "" || roomID == "" {
-		http.Error(w, "Token and room_id is required", http.StatusUnauthorized)
-		return
-	}
 
-	// 2. Ищем комнату в лобби
-	room, err := lobby.GetRoom(roomID)
-	if err != nil {
-		http.Error(w, "Комната не найдена", http.StatusNotFound)
+	if tokenStr == "" {
+		http.Error(w, "Token is required", http.StatusUnauthorized)
 		return
 	}
 
@@ -60,6 +53,25 @@ func ServeWs(w http.ResponseWriter, r *http.Request, lobby *game.Lobby) {
 	if !ok {
 		http.Error(w, "Username not found in token", http.StatusUnauthorized)
 		return
+	}
+
+	roomID := r.URL.Query().Get("room_id")
+	var room *game.Room
+
+	if roomID != "" {
+		// Классический сценарий: Игрок явно создаёт комнату или присоединяется к ней
+		room, err = lobby.GetRoom(roomID)
+		if err != nil {
+			http.Error(w, "Комната не найдена", http.StatusNotFound)
+			return
+		}
+	} else {
+		// Сценарий перезагрузки (F5): room_id нет, ищем игрока в отключившихся
+		room = lobby.FindRoomByDisconnectedPlayer(username)
+		if room == nil {
+			http.Error(w, "Вы не находитесь в активной игре", http.StatusBadRequest)
+			return
+		}
 	}
 
 	// 5. Обновляем соединение до WebSocket

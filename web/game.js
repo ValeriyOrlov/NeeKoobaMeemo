@@ -1,3 +1,6 @@
+import { loadProfile } from "./api.js";
+import { showScreen, setIsGameActive } from "./ui.js";
+
 // Звуковые эффекты
 const sfxRoll = new Audio('../sounds/dice.wav');
 const sfxBank = new Audio('../sounds/bank.wav');
@@ -16,7 +19,6 @@ const opponentBankEl = document.getElementById('opponent-bank');
 const opponentSelectedEl = document.getElementById('opponent-selected');
 const selfNameEl = document.getElementById('self-name');
 const opponentNameEl = document.getElementById('opponent-name');
-const profileUsername = document.getElementById('profile-username');
 
 const gameLogContainer = document.querySelector('.game-log-container');
 
@@ -24,9 +26,38 @@ const btnRoll = document.querySelector('.btn-roll');
 const btnBank = document.querySelector('.btn-bank');
 const btnSelect = document.querySelector('.btn-select');
 
+const avatarButton = document.querySelector('.player-avatar-btn');
+const btnHello = document.querySelector('.hello-btn');
+const btnThreat = document.querySelector('.threat-btn');
+const btnHurryUp = document.querySelector('.hurry-up-btn');
+const wowBtn = document.querySelector('.wow-btn');
+const btnSurrender = document.querySelector('.surrender-btn');
+
+const gameoverModal = document.getElementById("gameover-modal");
+const gameoverModalMsg = document.querySelector(".gameover-modal-msg");
+const gameoverModalCloseBtn = document.querySelector(".btn-close-gameover-modal");
+
+const surrenderModal = document.getElementById("surrender-modal");
+const surrenderModalMsg = document.querySelector(".surrender-modal-msg");
+const surrenderBtn = document.querySelector(".btn-surrender");
+const surrenderModalCloseBtn = document.querySelector(".btn-close-surrender-modal")
+
 let selectedDiceIndices = new Set();
 let currentDiceValues = [];
 let myUsername = "";
+
+function getUsernameFromToken() {
+    const token = localStorage.getItem('game_token');
+    if (!token) return "Путник";
+    try {
+        // JWT состоит из 3 частей. Берем вторую (payload) и декодируем из Base64
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return payload.username || "Путник";
+    } catch (e) {
+        console.error("Ошибка декодирования токена:", e);
+        return "Путник";
+    }
+};
 
 export function setGameSocket(ws) {
     socket = ws;
@@ -99,7 +130,7 @@ btnBank.addEventListener('click', () => {
 btnSelect.addEventListener('click', () => {
     const selectedVals = getSelectedDiceValues();
     if (selectedVals.length === 0) {
-        alert('Выберите хотя бы один призовой кубик!');
+        printLog(msg.message || "Выберите хотя бы один призовой кубик!");
         return;
     }
 
@@ -108,6 +139,25 @@ btnSelect.addEventListener('click', () => {
     sendAction('SELECT_DICE', selectedVals);
 });
 
+// КНОПКИ МЕНЮ ПОЛЬЗОВАТЕЛЯ
+avatarButton.addEventListener('click', () => toggleAvatarMenu());
+btnHello.addEventListener('click', () => sendChat('Привет!'));
+btnHurryUp.addEventListener('click', () => sendChat('Ну чё ты..?'));
+btnThreat.addEventListener('click', () => sendChat('Прощайся с золотишком!'));
+wowBtn.addEventListener('click', () => sendChat('Вот эт каэшн дааа'));
+btnSurrender.addEventListener('click', () => {
+    surrenderModalMsg.textContent = "Вы уверены, что хотите сдаться? Это засчитает поражение.";
+    surrenderModal.showModal();
+});
+
+// Кнопка закрытия модального окна конца игры
+gameoverModalCloseBtn.addEventListener('click', () => {
+    gameoverModal.close();
+    loadProfile();
+})
+
+surrenderBtn.addEventListener('click', () => surrender());
+surrenderModalCloseBtn.addEventListener('click', () => surrenderModal.close());
 // Словарь вращений 3D-граней
 const diceRotations = {
     1: { x: 0, y: 0 },
@@ -127,8 +177,15 @@ function renderDice(diceArray, isNewRoll = true) {
         diceContainer.innerHTML = '';
         selectedDiceIndices.clear();
         
-        const MIN_DISTANCE = 75; 
         const placedPositions = [];
+
+        // Защита: если браузер еще не успел отрендерить ширину контейнера
+        const containerWidth = diceContainer.clientWidth || 300;
+        const containerHeight = diceContainer.clientHeight || 300;
+
+        // Отступаем от краев, чтобы кубики не обрезались
+        const maxX = Math.max(10, containerWidth - 80);
+        const maxY = Math.max(10, containerHeight - 80);
 
         diceArray.forEach((val, idx) => {
             const wrapper = document.createElement('div');
@@ -160,22 +217,29 @@ function renderDice(diceArray, isNewRoll = true) {
             wrapper.appendChild(diceEl);
             diceContainer.appendChild(wrapper);
 
-            const maxX = diceContainer.clientWidth - 70;
-            const maxY = diceContainer.clientHeight - 70;
             let randomX = 0;
             let randomY = 0;
             let hasOverlap = true;
             let attempts = 0;
+            
+            // 85px — идеальный радиус (чуть больше диагонали 60px кубика)
+            let currentMinDist = 85; 
 
-            while (hasOverlap && attempts < 100) {
+            // Даем алгоритму 300 попыток вместо 100
+            while (hasOverlap && attempts < 300) {
                 randomX = Math.max(10, Math.floor(Math.random() * maxX));
                 randomY = Math.max(10, Math.floor(Math.random() * maxY));
 
+                // Предохранитель: если места мало, постепенно разрешаем легкое касание углов
+                if (attempts === 100) currentMinDist = 70;
+                if (attempts === 200) currentMinDist = 55;
+
                 hasOverlap = placedPositions.some(pos => {
-                    const deltaX = Math.abs(pos.x - randomX);
-                    const deltaY = Math.abs(pos.y - randomY);
-                    return deltaX < MIN_DISTANCE && deltaY < MIN_DISTANCE;
+                    const deltaX = pos.x - randomX;
+                    const deltaY = pos.y - randomY;
+                    return Math.hypot(deltaX, deltaY) < currentMinDist;
                 });
+                
                 attempts++;
             }
 
@@ -194,9 +258,7 @@ function renderDice(diceArray, isNewRoll = true) {
             // Только подсветка по клику, без мгновенной отправки
             diceEl.addEventListener('click', () => {
                 if (!isMyTurn) return;
-                //sfxSelect.currentTime = 0;
-                //sfxSelect.play();
-
+                
                 diceEl.classList.toggle('selected-3d');
                 
                 if (selectedDiceIndices.has(idx)) {
@@ -245,18 +307,86 @@ function renderDice(diceArray, isNewRoll = true) {
     }
 }
 
+function toggleAvatarMenu() {
+    const menu = document.getElementById("avatar-menu");
+    menu.classList.toggle("hidden");
+}
+
+// Отправка реплики в чат
+function sendChat(text) {
+    const msg = {
+        type: "CHAT",
+        message: text
+    };
+    socket.send(JSON.stringify(msg));
+    toggleAvatarMenu(); // Скрываем меню после отправки
+}
+
+// Отправка сигнала о сдаче
+function surrender() {
+    const msg = { type: "SURRENDER" };
+        socket.send(JSON.stringify(msg));
+        toggleAvatarMenu();
+        surrenderModal.close();
+}
+
+// функция обновления аватаров
+function setPlayerAvatars(avatarsMap) {
+    if (!avatarsMap) return;
+
+    // Наш аватар
+    const myAvatar = avatarsMap[myUsername] || 'fat_cat';
+    document.getElementById('self-avatar-img').src = `../pictures/avatars/${myAvatar}.jpg`;
+
+    // Аватар соперника
+    for (let player in avatarsMap) {
+        if (player !== myUsername) {
+            const oppAvatar = avatarsMap[player] || 'prophet';
+            document.getElementById('opponent-avatar-img').src = `../pictures/avatars/${oppAvatar}.jpg`;
+        }
+    }
+}
+
+let turnInterval;
+const TURN_DURATION = 90; // 90 секунд
+
+function startVisualTimer() {
+    // Очищаем предыдущий таймер, если он был
+    clearInterval(turnInterval);
+    let timeLeft = TURN_DURATION;
+    const timerDisplay = document.getElementById("timer-display");
+    
+    timerDisplay.innerText = `Время на ход: ${timeLeft}с`;
+
+    turnInterval = setInterval(() => {
+        timeLeft--;
+        timerDisplay.innerText = `Время на ход: ${timeLeft}с`;
+        
+        if (timeLeft <= 0) {
+            clearInterval(turnInterval);
+            timerDisplay.innerText = "Ожидание сервера...";
+            // Фронтенд ничего не отправляет при 0. 
+            // Он просто ждет событие TURN_CHANGED или GAME_OVER от бэкенда.
+        }
+    }, 1000);
+}
+
+function stopVisualTimer() {
+    clearInterval(turnInterval);
+    document.getElementById("timer-display").innerText = "";
+}
+
 // === ОСНОВНОЙ ОБРАБОТЧИК СОБЫТИЙ СЕРВЕРА ===
 export function handleGameEvent(msg) {
     console.log("Событие от сервера:", msg);
-
     if (msg.message && msg.type !== "ZONK") {
         gameStatus.innerText = msg.message;
     }
 
     switch (msg.type) {
         case "GAME_STARTED":
-            myUsername = profileUsername ? profileUsername.innerText : "";
-            selfNameEl.innerText = myUsername;
+            setIsGameActive(true);
+            myUsername = getUsernameFromToken();
             
             const players = Object.keys(msg.banks);
             const opponent = players.find(p => p !== myUsername) || "Соперник";
@@ -266,6 +396,8 @@ export function handleGameEvent(msg) {
             resetSelectedScores();
             printLog(msg.message || "⚔️ Игра началась!");
             toggleControls(msg.active_player === myUsername);
+            startVisualTimer();
+            setPlayerAvatars(msg.avatars);
             break;
 
         case "DICE_ROLLED":
@@ -298,6 +430,7 @@ export function handleGameEvent(msg) {
                 resetSelectedScores();
                 toggleControls(msg.active_player === myUsername);
                 printLog(msg.message || `🔄 Ход перешел к игроку ${msg.active_player}`);
+                startVisualTimer();
             };
 
             if (isZonkPending) {
@@ -317,16 +450,76 @@ export function handleGameEvent(msg) {
             printLog(msg.message);
             break;
 
+        case "SYSTEM":
+            printLog(msg.message);
+            // Восстанавливаем элементы управления. 
+            // Переменная isMyTurn "помнит" статус до обрыва соединения.
+            toggleControls(isMyTurn);
+            break;
+
         case "GAME_OVER":
+            setIsGameActive(false);
+            stopVisualTimer();
             toggleControls(false);
             printLog(msg.message || "🏆 Игра завершена!");
-            setTimeout(() => {
-                alert(msg.message);
-            }, 1000);
+            gameoverModalMsg.textContent = msg.message;
+            gameoverModal.showModal();
+            break;
+
+        case "CHAT":
+            printLog(`${msg.active_player}:${msg.message}`);
+            break;
+
+        case "PLAYER_DISCONNECTED":
+            printLog(msg.message);
+            gameStatus.innerText = `Ожидание... (${msg.active_player} отключился)`;
+            gameStatus.classList.remove('my-turn');
+            
+            // Блокируем кнопки, чтобы противник ничего не нажал, пока тот переподключается
+            btnRoll.disabled = true;
+            btnBank.disabled = true;
+            btnSelect.disabled = true;
+            break;
+        
+        case "GAME_RESTORED":
+            // Переключаем экраны
+            setIsGameActive(true);
+            showScreen('game');
+
+            // 1. Восстанавливаем имена игроков
+            myUsername = getUsernameFromToken();
+            console.log("myUsername: ", myUsername);
+            selfNameEl.innerText = myUsername;
+            
+            const allPlayers = Object.keys(msg.banks);
+            console.log("allPlayers: ", allPlayers);
+            const op = allPlayers.find(p => p !== myUsername) || "Соперник";
+            opponentNameEl.innerText = op;
+            console.log("active_player", msg.active_player)
+            // 2. Восстанавливаем банки и очки на столе
+            updateBanks(msg.banks);
+            updateScores(msg.active_player, msg.score);
+            
+            // 3. Восстанавливаем кубики, если бросок был уже сделан
+            if (msg.dice && msg.dice.length > 0) {
+                renderDice(msg.dice, true);
+            } else {
+                diceContainer.innerHTML = '';
+                selectedDiceIndices.clear();
+            }
+            
+            // 4. Восстанавливаем управление
+            toggleControls(msg.active_player === myUsername);
+            gameStatus.innerText = msg.message;
+            printLog(msg.message);
+            
+            // 5. Перезапускаем визуал таймера хода
+            startVisualTimer(); 
+            setPlayerAvatars(msg.avatars);
             break;
 
         case "ERROR":
-            alert(msg.message);
+            alert(msg.message || "Ошибка");
             break;
     }
 }

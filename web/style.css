@@ -11,10 +11,15 @@ dialog {
   border: none;             /* Убирает стандартную черную рамку */
   box-shadow: none;  
 }
-
 img, svg, video {
   max-width: 100%;
   height: auto; /* Сохраняет пропорции при сжатии */
+}
+
+button {
+  padding: 0%;
+  background: transparent;
+  border: none;
 }
 
 /* Зоны игроков: аватар по центру, имя под ним, статы по бокам */
@@ -24,7 +29,7 @@ img, svg, video {
   align-items: center;
   justify-content: space-between;
   padding: 15px 30px;
-  background-image: url('../pictures/player-area.jpg');
+  background-image: url('../pictures/player_area_clean.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -35,9 +40,15 @@ img, svg, video {
   text-shadow: 1px 1px 3px black;
 }
 
+.opponent-area {
+  background-image: url('../pictures/opponent-area.jpg');
+}
+
 .stats-box {
   display: flex;
+  width: 100%;
   flex-direction: row;
+  justify-content: space-between;
 }
 
 .player-profile {
@@ -55,17 +66,69 @@ img, svg, video {
 }
 
 .avatar-placeholder {
-  width: 50px;
-  height: 50px;
+    width: 100px;
+    height: 100px;
+    font-size: 18px;
+  }
+
+.avatar-placeholder img {
+  border-radius: 50%;
+}
+
+.player-avatar-container {
+  flex-direction: column;
+  position: relative;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
-  border: 2px solid #f1c40f;
-  font-size: 22px;
+  font-size: 16px;
+}
+
+.player-avatar-container img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.player-avatar-btn {
+  border-radius: 50%;
+}
+
+/* Сетка выбора в модальном окне */
+.avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 15px 0;
+}
+
+.avatar-option {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: 2px solid #915508;
+  cursor: pointer;
+  object-fit: cover;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.avatar-option:hover {
+  transform: scale(1.1);
+  border-color: #f1c40f;
+}
+
+.player-name {
+  font-weight: bold;
 }
 
 .stat-box {
+  display: flex;
+  align-items:center;
+  justify-content: center;
   min-width: 120px;
   font-size: 15px;
   padding: 8px 12px;
@@ -87,9 +150,10 @@ img, svg, video {
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
+  width: 100vw;
   padding: 20px;
   gap: 15px;
-  background-image: url('../pictures/table-area.jpg');
+  background-image: url('../pictures/table.jpg');
   background-size: cover;
   background-position: center;
   /* Добавим легкое затемнение поверх картинки, чтобы текст лучше читался */
@@ -119,53 +183,11 @@ img, svg, video {
   transform: translateY(-2px);
 }
 
-/* Главная центральная кнопка броска */
-.btn-roll {
-  background-image: url('../pictures/brosok3.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  width: 120px;
-  height: 120px;
-  border: 3px solid #915508;
-  border-radius: 40%;
-  color: white;
-  text-shadow:1px 1px 4px black, 0 0 10px rgba(0, 0, 0, 0.8);
-}
-
-.btn-roll, .btn-bank, .btn-select {
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  width: 120px;
-  height: 120px;
-  border: none;
-  border-radius: 40%;
-  text-shadow:1px 1px 4px black, 0 0 10px rgba(0, 0, 0, 0.8);
-  box-shadow: 
-    inset 3px 3px 6px rgba(255, 255, 255, 0.4),
-    inset -4px -4px 8px rgba(0, 0, 0, 0.6),
-    0 6px 10px rgba(0, 0, 0, 0.5);
-  transition: transform 0.1s, box-shadow 0.1s;
-}
-
 .controls-area button:active:not(:disabled) {
   transform: translateY(4px);
   box-shadow: 
     inset 4px 4px 8px rgba(0, 0, 0, 0.8),
     inset -1px -1px 3px rgba(255, 255, 255, 0.2);
-}
-
-.btn-select {
-  background-image: url('../pictures/aside_dice.png');
-
-  color: white;
-}
-
-.btn-bank {
-  background-image: url('../pictures/bank2.png');
-  color: white;
-  text-shadow:1px 1px 4px black, 0 0 10px rgba(0, 0, 0, 0.8);
 }
 
 /* Неактивные кнопки */
@@ -177,6 +199,37 @@ img, svg, video {
   opacity: 0.5;
   transform: none !important;
   box-shadow: none !important;
+}
+
+.btn-roll, .btn-bank, .btn-select {
+  height: 120px;
+  width: 120px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: none;
+  border-radius: 40%;
+  color: white;
+  text-shadow:1px 1px 4px black, 0 0 10px rgba(0, 0, 0, 0.8);
+  box-shadow: 
+    inset 3px 3px 6px rgba(255, 255, 255, 0.4),
+    inset -4px -4px 8px rgba(0, 0, 0, 0.6),
+    0 6px 10px rgba(0, 0, 0, 0.5);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+/* Главная центральная кнопка броска */
+.btn-roll {
+  background-image: url('../pictures/btn_roll_img.png');
+
+}
+
+.btn-select {
+  background-image: url('../pictures/btn_select_img.png');
+}
+
+.btn-bank {
+  background-image: url('../pictures/btn_bank_img.png');
 }
 
 /* Стол для бросков */
@@ -283,8 +336,6 @@ img, svg, video {
 .game-log-container {
   height: 120px;
   overflow-y: auto;
-  width: 100%;
-  max-width: 400px;
   list-style-type: none;
   padding-inline-start: 0;
   margin-bottom: 5px;
@@ -299,6 +350,12 @@ img, svg, video {
   background-position: center;
   /* Добавим легкое затемнение поверх картинки, чтобы текст лучше читался */
   box-shadow: inset 0 0 50px rgba(0,0,0,0.8); 
+}
+
+.game-log-container, .rooms-list-container {
+  width: 90%;
+  max-width: 400px;
+  box-sizing: border-box; /* Границы не будут увеличивать итоговую ширину */
 }
 
 .dice {
@@ -345,23 +402,43 @@ img, svg, video {
 
 }
 
+.welcome {
+  background-image: url('../pictures/auth-screen.jpg'); /* Сохраняем атмосферу таверны */
+}
+
+.lobby {
+  background-image: url('../pictures/lobby.jpg'); /* Сохраняем атмосферу таверны */
+}
+
+.tavern-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .screen.hidden {
   display: none !important;
 }
 
-/* Карточки в средневековом стиле для входа и профиля */
 .medieval-card {
-  background: rgba(20, 20, 20, 0.85);
+  width: 90%; /* Занимает 90% экрана телефона */
+  max-width: 320px; /* Не будет слишком широкой на ПК */
+  background: rgba(20, 20, 20, 0.36);
   border: 3px solid #915508;
   border-radius: 12px;
   padding: 30px;
-  width: 320px;
   display: flex;
   flex-direction: column;
   gap: 15px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 8px 25px rgba(54, 53, 53, 0.179);
   color: #ecf0f1;
   text-align: center;
+}
+
+.modal-content {
+  width: 80%; /* Занимает 90% экрана телефона */
+  max-width: 300px; /* Не будет слишком широкой на ПК */
+  background: rgba(20, 20, 20, 0.947);
 }
 
 .medieval-card-heading {
@@ -379,7 +456,7 @@ img, svg, video {
 }
 
 .btn-medieval {
-  background-color: #915508;
+  background: rgba(20, 20, 20, 0.458);
   color: white;
   border: 2px solid #f1c40f;
   padding: 10px;
@@ -408,6 +485,11 @@ img, svg, video {
   flex-direction: column;
 }
 
+.form-error-msg {
+  color: red;
+  background-color: #2c3e50;
+}
+
 .game-status {
   background: #f4e4bc; /* Основной цвет старой бумаги */
   /* Градиент затемняет края, имитируя форму свитка */
@@ -429,22 +511,20 @@ img, svg, video {
   box-shadow: 
     0 5px 15px rgba(0, 0, 0, 0.7), 
     inset 0 0 20px rgba(139, 69, 19, 0.4);
-  margin-bottom: 15px;
   min-width: 250px;
 }
 
 .rooms-list-container {
   height: 300px;
-  overflow-y: auto;
   width: 100%;
-  max-width: 400px;
+  overflow-y: auto;
   padding-inline-start: 0;
   list-style-type: none;
   margin-bottom: 5px;
   border-radius: 8px;
   border: 1px solid #915508;
   font-size: 13px;
-  color: black;
+  color: rgb(244, 236, 236);
   text-align: center;
   background-color: rgba(30, 30, 30, 0.7);
   background-image: url('../pictures/game-log-display.jpg');
@@ -452,6 +532,67 @@ img, svg, video {
   background-position: center;
   /* Добавим легкое затемнение поверх картинки, чтобы текст лучше читался */
   box-shadow: inset 0 0 50px rgba(0,0,0,0.8); 
+}
+
+.rooms-list-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1rem;
+  text-shadow:1px 1px 4px black, 0 0 10px rgba(0, 0, 0, 0.8);
+  border-bottom: 1px solid #070707; /* Толщина, стиль и цвет линии */
+}
+
+/* Простые стили для меню */
+#avatar-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%); /* Ровное центрирование над аватаром */
+  display: flex;
+  flex-direction: column; /* Элементы в столбик, чтобы сузить блок */
+  background-image: url('../pictures/game-log-display.jpg');
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 100;
+  width: max-content;
+  max-width: 90vw; /* Блокируем выход за ширину экрана */
+}
+
+.hidden {
+    display: none!important;
+}
+
+#avatar-menu button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    margin: 5px 0;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 5px;
+}
+#avatar-menu button:hover {
+    background: #f0f0f0;
+}
+.surrender-btn {
+    color: red;
+    font-weight: bold;
+}
+
+#timer-display {
+  background: #f4e4bc; /* Основной цвет старой бумаги */
+  /* Градиент затемняет края, имитируя форму свитка */
+  background-image: linear-gradient(to right, #d4b474, #f4e4bc 15%, #f4e4bc 85%, #d4b474);
+  color: #3e2708; /* Темно-коричневые чернила */
+  padding: 3px;
+  width: 100%;
+  font-weight: bold;
+  font-size: 18px;
+  text-align: center;
 }
 
 @media (max-height: 915px) {
@@ -462,9 +603,11 @@ img, svg, video {
 
   /* Уменьшаем размер аватарки */
   .avatar-placeholder {
-    width: 40px;
-    height: 40px;
+    width: 80px;
+    height: 80px;
     font-size: 18px;
+    border-radius: 50%;
+    border: 2px solid #f1c40f;
   }
 
   /* Сжимаем внутренние зазоры игрового стола */
@@ -508,5 +651,21 @@ img, svg, video {
   }
   .avatar-placeholder {
     display: none; /* Прячем аватарку на ультра-маленьких экранах для экономии места */
+  }
+}
+
+@media (max-width: 480px) {
+  .controls-area {
+    gap: 10px;
+  }
+  .btn-roll, .btn-bank, .btn-select {
+    width: 80px;
+    height: 80px;
+    font-size: 13px;
+  }
+  .stat-box {
+    min-width: 90px;
+    padding: 5px 8px;
+    font-size: 13px;
   }
 }
