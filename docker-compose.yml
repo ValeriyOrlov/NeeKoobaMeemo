@@ -1,0 +1,83 @@
+services:
+  # 1. База данных авторизации
+  auth-db:
+    image: postgres:15-alpine
+    container_name: auth-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${AUTH_DB_USER}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD}
+      POSTGRES_DB: ${AUTH_DB_NAME}
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    networks:
+      - medieval-net
+
+  # 2. Игровая база данных
+  game-db:
+    image: postgres:15-alpine
+    container_name: game-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${GAME_DB_USER}
+      POSTGRES_PASSWORD: ${GAME_DB_PASSWORD}
+      POSTGRES_DB: ${GAME_DB_NAME}
+    volumes:
+      - game-db-data:/var/lib/postgresql/data
+    networks:
+      - medieval-net
+
+  # 3. Сервис авторизации
+  auth-app:
+    build:
+      context: ./auth
+      dockerfile: Dockerfile
+    container_name: auth-app
+    restart: always
+    ports:
+      - "${APP_PORT}:8080"
+    environment:
+      - DB_HOST=auth-db
+      - DB_PORT=${AUTH_DB_PORT}
+      - DB_USER=${AUTH_DB_USER}
+      - DB_PASSWORD=${AUTH_DB_PASSWORD}
+      - DB_NAME=${AUTH_DB_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - auth-db
+    networks:
+      - medieval-net
+
+  # 4. Игровой сервис + Веб-клиент
+  game-app:
+    build:
+      context: ./game
+      dockerfile: Dockerfile
+    container_name: game-app
+    restart: always
+    ports:
+      - "${GAME_PORT}:8081"
+    environment:
+      - DB_HOST=game-db
+      - DB_PORT=${GAME_DB_PORT}
+      - DB_USER=${GAME_DB_USER}
+      - DB_PASSWORD=${GAME_DB_PASSWORD}
+      - DB_NAME=${GAME_DB_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+      # Внутренний HTTP-адрес авторизации для игрового сервера
+      - AUTH_SERVER_URL=http://auth-app:8080
+    depends_on:
+      - game-db
+      - auth-app
+    networks:
+      - medieval-net
+
+# Сохранение данных при перезапуске
+volumes:
+  auth-db-data:
+  game-db-data:
+
+# Изолированная внутренняя сеть
+networks:
+  medieval-net:
+    driver: bridge

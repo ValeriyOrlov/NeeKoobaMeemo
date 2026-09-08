@@ -1,15 +1,40 @@
+/* Основной шрифт для кнопок, диалогов, лога и стилистических блоков */
+body, button, input, dialog, select, textarea {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+/* Выразительный готический шрифт для заголовков и карточек */
+h1, h2, h3, .medieval-card-heading, .game-status {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* Усиление акцента для готических кнопок */
+.btn-medieval, .controls-area button {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
 body {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  height: 100dvh;
+  margin: 0;
   overflow: hidden;
+  background-color: #0b0908;
+  font-family: 'MedievalSharp', cursive, serif;
 }
 
 dialog {
   background: transparent; /* Делает фон абсолютно прозрачным */
   border: none;             /* Убирает стандартную черную рамку */
   box-shadow: none;  
+  overflow: hidden;
 }
 img, svg, video {
   max-width: 100%;
@@ -27,6 +52,7 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 8px;
   justify-content: space-between;
   padding: 15px 30px;
   background-image: url('../pictures/player_area_clean.jpg');
@@ -38,9 +64,11 @@ button {
   box-shadow: inset 0 0 100px rgba(0,0,0,0.8);
   color: #ecf0f1;
   text-shadow: 1px 1px 3px black;
+  box-shadow: inset 0 0 50px rgba(0,0,0,0.8); 
 }
 
 .opponent-area {
+  position: relative;
   background-image: url('../pictures/opponent-area.jpg');
 }
 
@@ -122,6 +150,8 @@ button {
 }
 
 .player-name {
+  margin: 0;
+  z-index: 2;
   font-weight: bold;
 }
 
@@ -165,7 +195,7 @@ button {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
 }
 
 /* Базовый стиль для боковых кнопок ("Отложить" и "В банк") */
@@ -192,8 +222,7 @@ button {
 
 /* Неактивные кнопки */
 .controls-area button:disabled {
-  background-color: #3b4a54 !important;
-  color: #7f8c8d !important;
+  background-color: transparent !important;
   border-color: transparent !important;
   cursor: not-allowed;
   opacity: 0.5;
@@ -340,9 +369,8 @@ button {
   padding-inline-start: 0;
   margin-bottom: 5px;
   border-radius: 8px;
-  border: 1px solid #915508;
   font-size: 13px;
-  color: black;
+  color: #130c02;
   text-align: center;
   background-color: rgba(30, 30, 30, 0.7);
   background-image: url('../pictures/game-log-display.jpg');
@@ -391,15 +419,15 @@ button {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
+  height: 100dvh;
+  width: 100%;
   box-sizing: border-box;
   background-color: #1a252f;
   background-image: url('../pictures/table-area.jpg'); /* Сохраняем атмосферу таверны */
   background-size: cover;
   background-position: center;
-
+  overflow: hidden;
+  position: relative;
 }
 
 .welcome {
@@ -490,11 +518,14 @@ button {
   background-color: #2c3e50;
 }
 
+.profile-card {
+  text-shadow: 1px 1px 3px black;
+}
+
 .game-status {
   background: #f4e4bc; /* Основной цвет старой бумаги */
-  /* Градиент затемняет края, имитируя форму свитка */
   background-image: linear-gradient(to right, #d4b474, #f4e4bc 15%, #f4e4bc 85%, #d4b474);
-  color: #3e2708; /* Темно-коричневые чернила */
+  color: #130c02;
   padding: 12px 40px;
   font-weight: bold;
   font-size: 18px;
@@ -512,6 +543,15 @@ button {
     0 5px 15px rgba(0, 0, 0, 0.7), 
     inset 0 0 20px rgba(139, 69, 19, 0.4);
   min-width: 250px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.game-status.visible {
+  opacity: 1;
+  z-index: 3;
+  visibility: visible;
 }
 
 .rooms-list-container {
@@ -546,16 +586,19 @@ button {
 /* Простые стили для меню */
 #avatar-menu {
   position: absolute;
-  bottom: 100%;
+  bottom: 110%;
   left: 50%;
   transform: translateX(-50%); /* Ровное центрирование над аватаром */
   display: flex;
-  flex-direction: column; /* Элементы в столбик, чтобы сузить блок */
-  background-image: url('../pictures/game-log-display.jpg');
-  border: 1px solid #ccc;
-  border-radius: 8px;
+  flex-direction: column;
+  gap: 6px;
   padding: 10px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  background: rgba(20, 15, 10, 0.92);
+  background-image: url('../pictures/game-log-display.jpg');
+  background-size: cover;
+  border: 2px solid #8b4513;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(0, 0, 0, 0.7);
   z-index: 100;
   width: max-content;
   max-width: 90vw; /* Блокируем выход за ширину экрана */
@@ -566,33 +609,99 @@ button {
 }
 
 #avatar-menu button {
-    display: block;
-    width: 100%;
-    text-align: left;
-    margin: 5px 0;
-    cursor: pointer;
-    background: none;
-    border: none;
-    padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 6px 12px;
+  margin: 0;
+  cursor: pointer;
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 700;
+  font-size: 14px;
+  text-align: center;
+  box-sizing: border-box;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
 }
+
 #avatar-menu button:hover {
-    background: #f0f0f0;
+  transform: translateY(-2px);
 }
+
+#avatar-menu button:active {
+  transform: translateY(1px);
+}
+
+/* Кнопки фраз в виде мини-свитков из пергамента */
+#avatar-menu button:not(.surrender-btn) {
+  background: #f4e4bc;
+  /* Градиент имитирует свернутый пергаментный свиток */
+  background-image: linear-gradient(to right, #c9a463, #f4e4bc 12%, #f4e4bc 88%, #c9a463);
+  color: #3e2708;               /* Чернила */
+  
+  border: none;
+  border-top: 2px solid #8b4513;
+  border-bottom: 2px solid #8b4513;
+  border-radius: 10px / 25px;   /* Закругление краев свитка */
+  
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4), inset 0 0 8px rgba(139, 69, 19, 0.3);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+#avatar-menu button:not(.surrender-btn):hover {
+  filter: brightness(1.08);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(139, 69, 19, 0.2);
+}
+
+/* Кнопка сдачи — красный готический флаг / тревожное предупреждение */
+#avatar-menu .surrender-btn {
+  background: #721c24;
+  background-image: linear-gradient(to right, #491217, #8b0000 15%, #a71d2a 85%, #491217);
+  color: #ffffff;
+  
+  border: 1px solid #ff4d4d;
+  border-radius: 8px;
+  
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(0, 0, 0, 0.6);
+  text-shadow: 1px 1px 3px black;
+  margin-bottom: 4px;           /* Выделяем кнопку сдачи от остальных */
+}
+
+#avatar-menu .surrender-btn:hover {
+  background-image: linear-gradient(to right, #5c171e, #a30000 15%, #bf2131 85%, #5c171e);
+  box-shadow: 0 0 10px rgba(255, 77, 77, 0.5), inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
 .surrender-btn {
     color: red;
     font-weight: bold;
 }
 
 #timer-display {
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  transform: translate(-50%);
+  margin-top: 6px;
+  width: fit-content;
+  /*margin: 5px auto 0 auto;*/
+  padding: 4px 14px;
+
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #3e2708;
+
   background: #f4e4bc; /* Основной цвет старой бумаги */
+  border: 1px solid #915508;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  text-align: center;
+  z-index: 1;
+  transition: opacity 0.2s ease;
   /* Градиент затемняет края, имитируя форму свитка */
   background-image: linear-gradient(to right, #d4b474, #f4e4bc 15%, #f4e4bc 85%, #d4b474);
-  color: #3e2708; /* Темно-коричневые чернила */
-  padding: 3px;
-  width: 100%;
-  font-weight: bold;
-  font-size: 18px;
-  text-align: center;
+
 }
 
 @media (max-height: 915px) {
@@ -669,3 +778,69 @@ button {
     font-size: 13px;
   }
 }
+
+/* 2. ОГРАНИЧЕНИЕ ШИРИНЫ ДЛЯ ШИРОКИХ ЭКРАНОВ И ДЕСКТОПА */
+@media (min-width: 768px) {
+  .screen {
+    max-width: 750px; /* Замораживаем ширину только на экранах от 768px */
+    border-left: 2px solid #915508;
+    border-right: 2px solid #915508;
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.95);
+  }
+
+  .table-area {
+    background-size: initial;
+    background-position: bottom;
+  }
+}
+
+/* 3. ЛАНДШАФТНЫЙ РЕЖИМИ И МАЛАЯ ВЫСОТА (Landscape / ПК с низким окном) */
+@media (orientation: landscape) and (max-height: 650px), (max-height: 650px) {
+  .table-area {
+    background-size: initial;
+    background-position: bottom;
+  }
+  
+  .player-area {
+    padding: 4px 15px;
+  }
+  
+  .avatar-placeholder {
+    width: 50px;
+    height: 50px;
+  }
+
+  .stat-box {
+    min-width: 80px;
+    font-size: 12px;
+    padding: 3px 6px;
+  }
+
+  .table-area {
+    padding: 5px;
+    gap: 4px;
+  }
+
+  .dice-container {
+    height: 120px; /* Сжимаем зону кубиков, чтобы не вылезали за стол */
+    margin: 2px 0;
+  }
+
+  .game-log-container {
+    height: 60px; /* Уменьшаем лог */
+    font-size: 11px;
+  }
+
+  .game-status {
+    padding: 4px 15px;
+    font-size: 14px;
+    min-width: 180px;
+  }
+
+  .btn-roll, .btn-bank, .btn-select {
+    width: 65px;
+    height: 65px;
+    font-size: 11px;
+  }
+}
+

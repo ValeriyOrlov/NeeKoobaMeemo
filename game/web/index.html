@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NeeKoobaMeemo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Monomakh+Display&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -83,7 +86,7 @@
                     <h2>Создать стол</h2>
                     <input type="number" id="room-bet-input" placeholder="Размер ставки (золото)" min="10" step="10">
                     <button id="btn-confirm-create" class="btn-medieval">Создать</button>
-                    <button id="btn-close-create" class="btn-medieval">Отмена</button>
+                    <button id="btn-close-createModal" class="btn-medieval">Отмена</button>
                 </div>
             </dialog>
 
@@ -135,7 +138,7 @@
                 </div>
             </div>
         </div>
-        <div id="timer-display" style="font-size: 1.2rem; font-weight: bold; color: #333;">
+        <div id="timer-display">
             Время на ход: 90с
         </div>
         <!-- Игровой стол (Центр)-->
@@ -160,13 +163,9 @@
                     <!-- Само меню (скрыто по умолчанию) -->
                     <div id="avatar-menu" class="hidden">
                         <button class="surrender-btn">Сдаться 🏳️</button>
-                        <hr>
                         <button class="hello-btn">Привет!</button>
-                        <hr>
                         <button class="threat-btn">Прощайся с золотишком!</button>
-                        <hr>
                         <button class="hurry-up-btn">Ну чё ты</button>
-                        <hr>
                         <button class="wow-btn">Мааае почтение</button>
                     </div>
                 </div>

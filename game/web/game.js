@@ -10,6 +10,26 @@ let socket;
 let isMyTurn = false;
 let isZonkPending = false;
 
+let statusTimeout = null;
+
+// Функция для временного показа сообщения
+function showGameStatus(text, duration = 3000) {
+    if (!text) return;
+
+    // Сбрасываем предыдущий таймер, если события идут подряд
+    if (statusTimeout) {
+        clearTimeout(statusTimeout);
+    }
+
+    gameStatus.innerText = text;
+    gameStatus.classList.add('visible');
+
+    // Скрываем через указанное время (по умолчанию 3 секунды)
+    statusTimeout = setTimeout(() => {
+        gameStatus.classList.remove('visible');
+    }, duration);
+}
+
 // === ССЫЛКИ НА ИГРОВЫЕ ЭЛЕМЕНТЫ ===
 const diceContainer = document.querySelector('.dice-container');
 const gameStatus = document.querySelector('.game-status');
@@ -146,7 +166,7 @@ btnHurryUp.addEventListener('click', () => sendChat('Ну чё ты..?'));
 btnThreat.addEventListener('click', () => sendChat('Прощайся с золотишком!'));
 wowBtn.addEventListener('click', () => sendChat('Вот эт каэшн дааа'));
 btnSurrender.addEventListener('click', () => {
-    surrenderModalMsg.textContent = "Вы уверены, что хотите сдаться? Это засчитает поражение.";
+    surrenderModalMsg.textContent = "Вы уверены, что хотите сдаться?\n Вам засчитается поражение.";
     surrenderModal.showModal();
 });
 
@@ -380,7 +400,7 @@ function stopVisualTimer() {
 export function handleGameEvent(msg) {
     console.log("Событие от сервера:", msg);
     if (msg.message && msg.type !== "ZONK") {
-        gameStatus.innerText = msg.message;
+        showGameStatus(msg.message);
     }
 
     switch (msg.type) {
@@ -416,7 +436,7 @@ export function handleGameEvent(msg) {
         case "ZONK":
             isZonkPending = true;
             renderDice(msg.dice, true);
-            gameStatus.innerText = '💥 Пупупууу :/ Очки раунда сгорели.';
+            showGameStatus('💥 Пупупууу :/ Очки раунда сгорели.');
             toggleControls(false);
             printLog(`🎲 Игрок ${msg.active_player} бросил кубики: [${msg.dice.join(', ')}]`);
             printLog(`💥 Пупупууу :/ У игрока ${msg.active_player} не выпало призовых костей.`);
@@ -444,7 +464,7 @@ export function handleGameEvent(msg) {
         case "MY_RESPECTS":
             selectedDiceIndices.clear();
             diceContainer.innerHTML = ''; 
-            gameStatus.innerText = msg.message;
+            showGameStatus(msg.message);
             updateScores(msg.active_player, msg.score);
             toggleControls(msg.active_player === myUsername);
             printLog(msg.message);
@@ -472,7 +492,7 @@ export function handleGameEvent(msg) {
 
         case "PLAYER_DISCONNECTED":
             printLog(msg.message);
-            gameStatus.innerText = `Ожидание... (${msg.active_player} отключился)`;
+            showGameStatus(`Ожидание... (${msg.active_player} отключился)`);
             gameStatus.classList.remove('my-turn');
             
             // Блокируем кнопки, чтобы противник ничего не нажал, пока тот переподключается
@@ -488,14 +508,11 @@ export function handleGameEvent(msg) {
 
             // 1. Восстанавливаем имена игроков
             myUsername = getUsernameFromToken();
-            console.log("myUsername: ", myUsername);
             selfNameEl.innerText = myUsername;
             
             const allPlayers = Object.keys(msg.banks);
-            console.log("allPlayers: ", allPlayers);
             const op = allPlayers.find(p => p !== myUsername) || "Соперник";
             opponentNameEl.innerText = op;
-            console.log("active_player", msg.active_player)
             // 2. Восстанавливаем банки и очки на столе
             updateBanks(msg.banks);
             updateScores(msg.active_player, msg.score);
@@ -510,7 +527,7 @@ export function handleGameEvent(msg) {
             
             // 4. Восстанавливаем управление
             toggleControls(msg.active_player === myUsername);
-            gameStatus.innerText = msg.message;
+            showGameStatus(msg.message);
             printLog(msg.message);
             
             // 5. Перезапускаем визуал таймера хода

@@ -33,7 +33,7 @@ const findRoomsModal = document.getElementById('find-rooms-modal');
 const roomsListDOM = document.getElementById('rooms-list');
 const roomBetInput = document.getElementById('room-bet-input');
 const btnConfirmCreate = document.getElementById('btn-confirm-create');
-const btnCloseCreate = document.getElementById('btn-close-create')
+const btnCloseCreate = document.getElementById('btn-close-createModal');
 const btnCloseFind = document.getElementById('btn-close-find');
 
 const avatarPickerModal = document.getElementById('avatar-picker-modal');
