@@ -17,7 +17,7 @@
             <form id="login-form" class="medieval-form">
                 <input type="email" id="login-email" placeholder="Электронная почта" required>
                 <input type="password" id="login-password" placeholder="Пароль" required>
-                <p class="form-error-msg"></p>
+                <p id="login-error-msg" class="form-error-msg"></p>
                 <button type="submit" class="btn-medieval">Войти</button>
             </form>
             <p class="toggle-auth-text">Нет мешка с золотом и счета? <a href="#" id="show-register">Зарегистрироваться</a></p>
@@ -32,7 +32,7 @@
                 <input type="email" id="reg-email" placeholder="Электронная почта" required>
                 <input type="text" id="reg-username" placeholder="Имя (минимум 3 символа)" required>
                 <input type="password" id="reg-password" placeholder="Пароль (минимум 8 символов)" required>
-                <p class="form-error-msg"></p>
+                <p id="register-error-msg" class="form-error-msg"></p>
                 <button type="submit" class="btn-medieval">Создать профиль</button>
             </form>
             <p class="toggle-auth-text">Уже есть профиль? <a href="#" id="show-login">Войти</a></p>
@@ -41,7 +41,7 @@
     </section>
     <dialog id="register-confirm-modal" class="modal">
                 <div class="medieval-card modal-content">
-                    <h2>На указанную Вами почту улетело письмо!\nЧтобы завершить регистрацию, необходимо пройти по ссылке в письме</h2>
+                    <h2>На указанную Вами почту улетело письмо! Чтобы завершить регистрацию, необходимо пройти по ссылке в письме</h2>
                     <button id="btn-close-create" class="btn-medieval">Хорошо!</button>
                 </div>
             </dialog>

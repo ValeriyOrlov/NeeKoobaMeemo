@@ -5,16 +5,19 @@ const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
 const registerConfirmModal = document.getElementById('register-confirm-modal');
 const registerConfirmModalCloseBtn = document.getElementById('btn-close-create');
-const formErrorMsg = document.querySelector('.form-error-msg');
+const loginErrorMsg = document.getElementById('login-error-msg');
+const registerErrorMsg = document.getElementById('register-error-msg');
 
 // Переключение между входом и регистрацией
 document.getElementById('show-register').addEventListener('click', (e) => {
   e.preventDefault();
+  registerErrorMsg.innerText = "";
   showScreen('register');
 });
 
 document.getElementById('show-login').addEventListener('click', (e) => {
   e.preventDefault();
+  loginErrorMsg.innerText = "";
   showScreen('auth');
 });
 
@@ -23,7 +26,7 @@ registerConfirmModalCloseBtn.addEventListener('click', () => registerConfirmModa
 // Регистрация
 registerForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  formErrorMsg.innerText = "";
+  registerErrorMsg.innerText = "";
   const email = document.getElementById('reg-email').value;
   const username = document.getElementById('reg-username').value;
   const password = document.getElementById('reg-password').value;
@@ -40,9 +43,10 @@ registerForm.addEventListener('submit', async (e) => {
       showScreen('auth');
     } else {
       const err = await response.text();
-      formErrorMsg.innerText = 'Ошибка регистрации: ' + err;
+      registerErrorMsg.innerText = 'Ошибка регистрации: ' + err;
     }
   } catch (error) {
+    registerErrorMsg.innerText = 'Ошибка сети. Попробуйте позже.';
     console.error('Ошибка сети: ' + error);
   }
 });
@@ -50,7 +54,7 @@ registerForm.addEventListener('submit', async (e) => {
 // Вход
 loginForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  formErrorMsg.innerText = "";
+  loginErrorMsg.innerText = "";
   const email = document.getElementById('login-email').value;
   const password = document.getElementById('login-password').value;
 
@@ -70,9 +74,10 @@ loginForm.addEventListener('submit', async (e) => {
       loadProfile(); // Загружаем данные игрока
     } else {
       const err = await response.text();
-      formErrorMsg.innerText = 'Ошибка авторизации: ' + err;
+      loginErrorMsg.innerText = 'Ошибка авторизации: ' + err;
     }
   } catch (error) {
+    loginErrorMsg.innerText = 'Ошибка сети. Попробуйте позже.';
     console.error('Ошибка сети:', error);
   }
 });
