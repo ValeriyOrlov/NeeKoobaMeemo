@@ -31,9 +31,9 @@ func main() {
 	playerStore := economy.NewDBStore(database)
 	var lobby = game.NewLobby(playerStore)
 
-	http.Handle("/sounds/", http.StripPrefix("/sounds/", http.FileServer(http.Dir("./sounds"))))
-	http.Handle("/pictures/", http.StripPrefix("/pictures/", http.FileServer(http.Dir("./pictures"))))
-	http.Handle("/", http.FileServer(http.Dir("./web")))
+	http.Handle("/sounds/", http.StripPrefix("/sounds/", http.FileServer(http.Dir("./game/sounds"))))
+	http.Handle("/pictures/", http.StripPrefix("/pictures/", http.FileServer(http.Dir("./game/pictures"))))
+	http.Handle("/", http.FileServer(http.Dir("./game/web")))
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		ws.ServeWs(w, r, lobby)
 	})
@@ -41,10 +41,6 @@ func main() {
 		handlers.HandleVerify(w, r)
 	})
 	http.HandleFunc("/api/profile", handlers.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		// Если фронтенд и бэкенд на разных портах, разрешаем CORS
-		// w.Header().Set("Access-Control-Allow-Origin", "*")
-		// w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
-
 		// Извлекаем имя пользователя из токена
 		username := r.Context().Value("username").(string)
 		// Получаем профиль игрока из хранилища

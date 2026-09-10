@@ -20,6 +20,7 @@ type Config struct {
 	SMTPPort        int
 	SMTPUsername    string
 	SMTPPassword    string
+	AppURL          string
 }
 
 type DBConfig struct {
@@ -66,7 +67,7 @@ func Load() (*Config, error) {
 		SMTPPort:        smtpPort,
 		SMTPUsername:    os.Getenv("SMTP_USERNAME"),
 		SMTPPassword:    os.Getenv("SMTP_PASSWORD"),
-	}
+		AppURL:          getEnv("APP_URL", getEnv("APP_URL", "http://localhost:8081"))}
 	if cfg.JWTSecret == "" {
 		return nil, fmt.Errorf("JWT_SECRET is required but not set")
 	}

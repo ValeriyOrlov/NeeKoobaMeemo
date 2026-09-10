@@ -55,6 +55,7 @@ func NewApp(cfg *config.Config) (*App, error) {
 		SMTPPort: cfg.SMTPPort,
 		Username: cfg.SMTPUsername,
 		Password: cfg.SMTPPassword,
+		AppURL:   cfg.AppURL,
 	}
 
 	userRepo := repository.NewGormUserRepo(db)

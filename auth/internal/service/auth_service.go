@@ -44,6 +44,7 @@ type EmailConfig struct {
 	SMTPPort int
 	Username string
 	Password string
+	AppURL   string
 }
 
 func NewAuthService(
@@ -108,11 +109,11 @@ func (s *AuthService) sendVerificationEmail(to, token string) error {
 	m := gomail.NewMessage()
 	m.SetHeader("From", s.emailConfig.From)
 	m.SetHeader("To", to)
-	m.SetHeader("Subject", "Подтверждение регистрации в NeeKoobaMeemo!")
+	m.SetHeader("Subject", "Подтверждение регистрации в Таверне Ни Куба Мимо!")
 
-	link := fmt.Sprintf("http://localhost:8081/verify?token=%s", token)
+	link := fmt.Sprintf("%s/verify?token=%s", s.emailConfig.AppURL, token)
 	body := fmt.Sprintf(`
-        <h2>Добро пожаловать в NeeKoobaMeemo!</h2>
+        <h2>Добро пожаловать в Таверну "Ни Куба Мимо"!</h2>
         <p>Перейдите по ссылке, чтобы подтвердить email:</p>
         <a href="%s">%s</a>
         <p>Если вы не регистрировались, просто проигнорируйте это письмо.</p>
@@ -261,18 +262,31 @@ func (s *AuthService) Logout(ctx context.Context, refreshTokenStr string) error 
 }
 
 func (s *AuthService) VerifyEmail(ctx context.Context, token string) (string, string, *model.User, error) {
-	// Находим пользователя по токену
+	// 1. Ищем пользователя по токену
 	user, err := s.userRepo.FindByVerificationToken(ctx, token)
 	if err != nil {
-		return "", "", nil, ErrInvalidVerificationToken
+		if errors.Is(err, repository.ErrUserNotFound) {
+			return "", "", nil, ErrInvalidVerificationToken
+		}
+		return "", "", nil, fmt.Errorf("find token: %w", err)
 	}
 
-	// Активируем пользователя
+	// 2. Если пользователь уже подтвержден, не возвращаем ошибку
+	if user.IsVerified {
+		accessToken, refreshToken, err := s.createTokenPair(ctx, user.ID, user.Username)
+		if err != nil {
+			return "", "", nil, err
+		}
+		return accessToken, refreshToken, &user, nil
+	}
+
+	// 3. Активируем пользователя
 	if err := s.userRepo.VerifyUser(ctx, token); err != nil {
 		return "", "", nil, fmt.Errorf("verify user: %w", err)
 	}
 
-	// Генерируем пару токенов (как в Login)
+	user.IsVerified = true
+
 	accessToken, refreshToken, err := s.createTokenPair(ctx, user.ID, user.Username)
 	if err != nil {
 		return "", "", nil, err
