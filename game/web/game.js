@@ -150,7 +150,9 @@ btnBank.addEventListener('click', () => {
 btnSelect.addEventListener('click', () => {
     const selectedVals = getSelectedDiceValues();
     if (selectedVals.length === 0) {
-        printLog(msg.message || "Выберите хотя бы один призовой кубик!");
+        const warningMsg = "Выберите хотя бы один призовой кубик!";
+        showGameStatus(warningMsg);
+        printLog(warningMsg);
         return;
     }
 
@@ -199,17 +201,16 @@ function renderDice(diceArray, isNewRoll = true) {
         
         const placedPositions = [];
 
-        // Защита: если браузер еще не успел отрендерить ширину контейнера
         const containerWidth = diceContainer.clientWidth || 300;
         const containerHeight = diceContainer.clientHeight || 300;
 
-        // Отступаем от краев, чтобы кубики не обрезались
         const maxX = Math.max(10, containerWidth - 80);
         const maxY = Math.max(10, containerHeight - 80);
 
         diceArray.forEach((val, idx) => {
             const wrapper = document.createElement('div');
             wrapper.className = 'dice-wrapper';
+            wrapper.dataset.value = val; // Сохраняем значение кубика в dataset
             
             const diceEl = document.createElement('div');
             diceEl.className = 'dice-3d';
@@ -241,16 +242,12 @@ function renderDice(diceArray, isNewRoll = true) {
             let randomY = 0;
             let hasOverlap = true;
             let attempts = 0;
-            
-            // 85px — идеальный радиус (чуть больше диагонали 60px кубика)
             let currentMinDist = 85; 
 
-            // Даем алгоритму 300 попыток вместо 100
             while (hasOverlap && attempts < 300) {
                 randomX = Math.max(10, Math.floor(Math.random() * maxX));
                 randomY = Math.max(10, Math.floor(Math.random() * maxY));
 
-                // Предохранитель: если места мало, постепенно разрешаем легкое касание углов
                 if (attempts === 100) currentMinDist = 70;
                 if (attempts === 200) currentMinDist = 55;
 
@@ -275,7 +272,6 @@ function renderDice(diceArray, isNewRoll = true) {
                 diceEl.style.transform = `rotateX(${targetRot.x + extraSpinsX}deg) rotateY(${targetRot.y + extraSpinsY}deg)`;
             }, 50);
 
-            // Только подсветка по клику, без мгновенной отправки
             diceEl.addEventListener('click', () => {
                 if (!isMyTurn) return;
                 
@@ -289,24 +285,36 @@ function renderDice(diceArray, isNewRoll = true) {
             });
         });
     } else {
-        // --- ОТКЛАДЫВАНИЕ (Удаление выбранных со стола) ---
+        // --- ОТКЛАДЫВАНИЕ (Удаляем со стола ТОЛЬКО отложенные кубики) ---
+        const selectedValues = [...diceArray];
         const allWrappers = diceContainer.querySelectorAll('.dice-wrapper');
         
         allWrappers.forEach(wrapper => {
-            const dice = wrapper.querySelector('.dice-3d');
-            if (dice.classList.contains('selected-3d')) {
+            const val = Number(wrapper.dataset.value);
+            const matchIndex = selectedValues.indexOf(val);
+            
+            // Если значение кубика совпадает с одним из отложенных — анимируем и убираем его
+            if (matchIndex !== -1) {
                 wrapper.style.transform = 'scale(0)';
                 wrapper.style.opacity = '0';
                 setTimeout(() => wrapper.remove(), 300);
+                
+                // Удаляем найденный элемент из копии массива, чтобы не удалить дубликаты повторно
+                selectedValues.splice(matchIndex, 1);
             }
         });
         
         selectedDiceIndices.clear();
         
-        // Перепривязка индексов для оставшихся кубиков
+        // Актуализация значений и перепривязка событий для оставшихся на столе кубиков
         setTimeout(() => {
-            const remainingDice = diceContainer.querySelectorAll('.dice-3d');
-            remainingDice.forEach((diceEl, newIdx) => {
+            const remainingWrappers = diceContainer.querySelectorAll('.dice-wrapper');
+            currentDiceValues = Array.from(remainingWrappers).map(w => Number(w.dataset.value));
+
+            remainingWrappers.forEach((wrapper, newIdx) => {
+                const diceEl = wrapper.querySelector('.dice-3d');
+                if (!diceEl) return;
+
                 const newDiceEl = diceEl.cloneNode(true);
                 diceEl.parentNode.replaceChild(newDiceEl, diceEl);
                 
@@ -443,13 +451,18 @@ export function handleGameEvent(msg) {
             break;
 
         case "TURN_CHANGED":
-            const processTurnChange = () => {
+const processTurnChange = () => {
                 selectedDiceIndices.clear();
                 diceContainer.innerHTML = '';
                 updateBanks(msg.banks);
                 resetSelectedScores();
                 toggleControls(msg.active_player === myUsername);
-                printLog(msg.message || `🔄 Ход перешел к игроку ${msg.active_player}`);
+                
+                // Выводим сообщение в логи и всплывающее уведомление
+                const statusMsg = msg.message || `🔄 Ход перешел к игроку ${msg.active_player}`;
+                printLog(statusMsg);
+                showGameStatus(statusMsg);
+                
                 startVisualTimer();
             };
 
@@ -536,7 +549,17 @@ export function handleGameEvent(msg) {
             break;
 
         case "ERROR":
-            alert(msg.message || "Ошибка");
+            // 1. Снимаем визуальное выделение со всех кубиков
+            diceContainer.querySelectorAll('.dice-3d.selected-3d').forEach(diceEl => {
+                diceEl.classList.remove('selected-3d');
+            });
+            
+            // 2. Очищаем Set выбранных индексов
+            selectedDiceIndices.clear();
+
+            // 3. Выводим статусное сообщение и логируем ошибку вместо alert
+            showGameStatus(msg.message || "Ошибка хода!", 4000);
+            printLog(`⚠️ ${msg.message || "Некорректное действие"}`);
             break;
     }
 }

@@ -174,6 +174,7 @@ func (r *Room) resetTurnTimerLocked() {
 		r.HasRolled = false
 
 		// Автоматически сохраняем отложенные очки в банк (даже если там 0)
+		bankedScore := r.RoundScore
 		r.Banks[r.CurrentTurn] += r.RoundScore
 
 		var events []models.EventMessage
@@ -211,12 +212,12 @@ func (r *Room) resetTurnTimerLocked() {
 			}
 			events = append(events, models.EventMessage{
 				Type:         "TURN_CHANGED",
-				Message:      fmt.Sprintf("Время на ход истекло! Очки сохранены. Ход перешёл к %s", r.Players[r.CurrentTurn]),
+				Message:      fmt.Sprintf("⏰ Время вышло! Игрок %s забанковал %d очков. Ход перешёл к %s", activePlayer, bankedScore, r.Players[r.CurrentTurn]),
 				Banks:        currentBanks,
 				ActivePlayer: r.Players[r.CurrentTurn],
+				Score:        bankedScore,
 			})
 		}
-
 		r.Mu.Unlock() // Обязательно отпускаем мьютекс ДО рассылки Broadcast
 
 		// Рассылаем события о смене хода или победе всем игрокам
@@ -529,6 +530,9 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 		}
 
 		r.HasRolled = false
+		bankedScore := r.RoundScore
+		bankedPlayer := activePlayer
+
 		r.Banks[r.CurrentTurn] += r.RoundScore
 
 		// Проверка на победу!
@@ -565,9 +569,10 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 			}
 			events = append(events, models.EventMessage{
 				Type:         "TURN_CHANGED",
-				Message:      fmt.Sprintf("Ход перешёл к %s", r.Players[r.CurrentTurn]),
+				Message:      fmt.Sprintf("🏦 Игрок %s забанковал %d очков! Ход перешёл к %s", bankedPlayer, bankedScore, r.Players[r.CurrentTurn]),
 				Banks:        currentBanks,
 				ActivePlayer: r.Players[r.CurrentTurn],
+				Score:        bankedScore,
 			})
 		}
 	}
