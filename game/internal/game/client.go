@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/models"
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/game/internal/models"
 	"github.com/gorilla/websocket"
 )
 

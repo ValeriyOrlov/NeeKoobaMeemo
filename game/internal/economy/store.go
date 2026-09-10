@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/models"
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/game/internal/models"
 	_ "github.com/lib/pq" // Драйвер PostgreSQL
 )
 

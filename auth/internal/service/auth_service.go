@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ValeriyOrlov/scvrrrchnkAuthServer/internal/model"
-	"github.com/ValeriyOrlov/scvrrrchnkAuthServer/internal/repository"
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/auth/internal/model"
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/auth/internal/repository"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"

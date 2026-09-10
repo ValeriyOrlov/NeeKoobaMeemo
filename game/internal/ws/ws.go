@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/game"
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/game/internal/game"
 	"github.com/golang-jwt/jwt"
 	"github.com/gorilla/websocket"
 )

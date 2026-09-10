@@ -35,13 +35,13 @@ services:
     container_name: auth-app
     restart: always
     ports:
-      - "${APP_PORT}:8080"
+      - "${AUTH_PORT}:8080"
     environment:
-      - DB_HOST=auth-db
-      - DB_PORT=${AUTH_DB_PORT}
-      - DB_USER=${AUTH_DB_USER}
-      - DB_PASSWORD=${AUTH_DB_PASSWORD}
-      - DB_NAME=${AUTH_DB_NAME}
+      - AUTH_DB_HOST=auth-db
+      - AUTH_DB_PORT=${AUTH_DB_PORT}
+      - AUTH_DB_USER=${AUTH_DB_USER}
+      - AUTH_DB_PASSWORD=${AUTH_DB_PASSWORD}
+      - AUTH_DB_NAME=${AUTH_DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
     depends_on:
       - auth-db
@@ -58,11 +58,11 @@ services:
     ports:
       - "${GAME_PORT}:8081"
     environment:
-      - DB_HOST=game-db
-      - DB_PORT=${GAME_DB_PORT}
-      - DB_USER=${GAME_DB_USER}
-      - DB_PASSWORD=${GAME_DB_PASSWORD}
-      - DB_NAME=${GAME_DB_NAME}
+      - GAME_DB_HOST=game-db
+      - GAME_DB_PORT=${GAME_DB_PORT}
+      - GAME_DB_USER=${GAME_DB_USER}
+      - GAME_DB_PASSWORD=${GAME_DB_PASSWORD}
+      - GAME_DB_NAME=${GAME_DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
       # Внутренний HTTP-адрес авторизации для игрового сервера
       - AUTH_SERVER_URL=http://auth-app:8080

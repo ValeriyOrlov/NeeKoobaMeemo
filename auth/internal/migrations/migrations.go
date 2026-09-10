@@ -1,7 +1,7 @@
 package migrations
 
 import (
-	"github.com/ValeriyOrlov/scvrrrchnkAuthServer/internal/model"
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/auth/internal/model"
 	"gorm.io/gorm"
 )
 

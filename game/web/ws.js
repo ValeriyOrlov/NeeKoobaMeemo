@@ -2,6 +2,8 @@ import { handleGameEvent, setGameSocket } from "./game.js";
 import { getValidToken } from "./api.js";
 import { showScreen } from "./ui.js";
 
+const wsHost = window.ENV.WS_URL;
+
 export async function connectWebSocket(roomId) {
   const token = await getValidToken();
   if (!token) {
@@ -10,7 +12,7 @@ export async function connectWebSocket(roomId) {
   };
 
   // Передаём и токен, и ID комнаты в URL
-  let wsUrl = `ws://localhost:8081/ws?token=${token}`;
+  let wsUrl = `${wsHost}?token=${token}`;
   if (roomId) {
     wsUrl += `&room_id=${roomId}`;
   }

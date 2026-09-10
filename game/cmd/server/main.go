@@ -5,12 +5,12 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/config"
-	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/db"
-	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/economy"
-	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/game"
-	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/handlers"
-	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/ws"
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/game/internal/config"
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/game/internal/db"
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/game/internal/economy"
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/game/internal/game"
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/game/internal/handlers"
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/game/internal/ws"
 )
 
 func main() {

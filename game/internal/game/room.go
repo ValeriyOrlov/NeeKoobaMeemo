@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/economy"
-	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/models"
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/game/internal/economy"
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/game/internal/models"
 	"github.com/gorilla/websocket"
 )
 

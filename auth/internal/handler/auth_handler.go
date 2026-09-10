@@ -3,7 +3,7 @@ package handler
 import (
 	"errors"
 
-	"github.com/ValeriyOrlov/scvrrrchnkAuthServer/internal/service"
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/auth/internal/service"
 	"github.com/gofiber/fiber/v2"
 )
 

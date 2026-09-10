@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ValeriyOrlov/NeeKoobaMeemo/internal/economy"
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/game/internal/economy"
 )
 
 type RoomInfo struct {

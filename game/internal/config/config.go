@@ -50,7 +50,7 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("переменная JWT_SECRET обязательна для запуска")
 	}
 
-	port := getEnv("APP_PORT", "8081")
+	port := getEnv("AUTH_PORT", "8081")
 
 	return &Config{
 		Port:          ":" + port,

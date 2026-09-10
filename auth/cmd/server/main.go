@@ -7,8 +7,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ValeriyOrlov/scvrrrchnkAuthServer/internal/app"
-	"github.com/ValeriyOrlov/scvrrrchnkAuthServer/internal/config"
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/auth/internal/app"
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/auth/internal/config"
 	"github.com/sirupsen/logrus"
 )
 
