@@ -22,6 +22,7 @@ import { toggleMusic } from "./music.js";
 const btnCreateGame = document.getElementById('btn-create-game');
 const btnFindGames = document.getElementById('btn-find-games');
 const btnLeaderboard = document.getElementById('btn-leaderboard');
+const btnOpenRules = document.getElementById('btn-rules');
 const logoutBtn = document.getElementById('btn-logout');
 
 const leaderboardModal = document.getElementById('leaderboard-modal');
@@ -30,6 +31,7 @@ const btnCloseLeaderboard = document.getElementById('btn-close-leaderboard');
 
 const createRoomModal = document.getElementById('create-room-modal');
 const findRoomsModal = document.getElementById('find-rooms-modal');
+const rulesModal = document.getElementById('rules-modal');
 const roomsListDOM = document.getElementById('rooms-list');
 const roomBetInput = document.getElementById('room-bet-input');
 const btnConfirmCreate = document.getElementById('btn-confirm-create');
@@ -39,6 +41,7 @@ const btnCloseFind = document.getElementById('btn-close-find');
 const avatarPickerModal = document.getElementById('avatar-picker-modal');
 const lobbyAvatarBtn = document.getElementById('lobby-avatar-btn');
 const closeAvatarBtn = document.getElementById('btn-close-avatar-picker');
+const closeRulesBtn = document.getElementById('btn-close-rules');
 
 const musicBtn = document.getElementById('music-toggle-btn');
 
@@ -86,6 +89,9 @@ document.querySelectorAll('.avatar-option').forEach(img => {
         }
     });
 });
+
+btnOpenRules.addEventListener('click', () => rulesModal.showModal());
+closeRulesBtn.addEventListener('click', () => rulesModal.close());
 
 export const logout = () => {
   localStorage.removeItem('game_token');

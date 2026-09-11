@@ -53,6 +53,10 @@ const btnHurryUp = document.querySelector('.hurry-up-btn');
 const wowBtn = document.querySelector('.wow-btn');
 const btnSurrender = document.querySelector('.surrender-btn');
 
+const btnCheatSheet = document.querySelector('.cheat-sheet');
+const cheatSheetModal = document.getElementById('cheat-sheet-modal');
+const btnCloseCheatSheetModal = document.querySelector('.btn-close-cheat-sheet-modal');
+
 const gameoverModal = document.getElementById("gameover-modal");
 const gameoverModalMsg = document.querySelector(".gameover-modal-msg");
 const gameoverModalCloseBtn = document.querySelector(".btn-close-gameover-modal");
@@ -171,6 +175,8 @@ btnSurrender.addEventListener('click', () => {
     surrenderModalMsg.textContent = "Вы уверены, что хотите сдаться?\n Вам засчитается поражение.";
     surrenderModal.showModal();
 });
+btnCheatSheet.addEventListener('click', () => cheatSheetModal.showModal());
+btnCloseCheatSheetModal.addEventListener('click', () => cheatSheetModal.close());
 
 // Кнопка закрытия модального окна конца игры
 gameoverModalCloseBtn.addEventListener('click', () => {

@@ -76,6 +76,7 @@
             <button id="btn-create-game" class="btn-medieval btn-large">Создать комнату</button>
             <button id="btn-find-games" class="btn-medieval btn-large">Поиск комнат</button>
             <button id="btn-leaderboard" class="btn-medieval btn-large">Статистика</button>
+            <button id="btn-rules" class="btn-medieval btn-large">Правила игры</button>
             <button id="btn-logout" class="btn-medieval btn-large">Покинуть таверну</button>
 
             <!-- Кнопка управления музыкой (лютня) -->
@@ -119,6 +120,21 @@
                 <button id="btn-close-leaderboard" class="btn-medieval">Закрыть</button>
             </div>
         </dialog>
+        <dialog id="rules-modal" class="modal">
+            <div class="medieval-card modal-content">
+                <h2>Правила игры</h2>
+                <p><b>Цель игры:</b> Первым набрать 3000 очков.</p>
+                <span>Игроки ходят по очереди. В начале хода нужно сделать бросок и выбрать призовые кости!</span>
+                <span>Призовые кости - это кости, которые приносят очки:</span>
+                <span>Очки приносят единицы (100) и пятерки (50), а также комбинации из 3+ одинаковых костей.</span>
+                <span>После броска необходимо отложить минимум один призовой кубик.</span>
+                <span>Если отложены все 6 кубиков — вы получаете право на повторный бросок всех 6 костей («Маааё почтение!»).</span>
+                <span>Если при броске не выпало ни одной призовой кости — очки раунда сгорают, ход передаётся противнику!</span>
+                <span>Вы можете забанковать очки в любой момент, передав ход противнику.</span>
+                <button id="btn-close-rules" class="btn-medieval">Ясно-понятно...</button>
+            </div>
+        </dialog>
+
     </section>
     <section id="game-screen" class="screen hidden">
         <!--Зона противника-->
@@ -167,6 +183,7 @@
                         <button class="threat-btn">Прощайся с золотишком!</button>
                         <button class="hurry-up-btn">Ну чё ты</button>
                         <button class="wow-btn">Мааае почтение</button>
+                        <button class="cheat-sheet">Комбинации</button>
                     </div>
                 </div>
                 <div class="stat-box right-stat">
@@ -193,6 +210,22 @@
                 <h2 class="surrender-modal-msg">Игра окончена!</h2>
                 <button class="btn-surrender btn-medieval">Сдаться</button>
                 <button class="btn-close-surrender-modal btn-medieval">Ну уж нет!</button>
+            </div>
+        </dialog>
+        <dialog id="cheat-sheet-modal" class="modal">
+            <div class="medieval-card modal-content">
+                <h2>🎲 Призовые комбинации</h2>
+                <div class="modal-content combo-list">
+                    <ul>
+                        <li><b>1:</b> 100 очков</li>
+                        <li><b>5:</b> 50 очков</li>
+                        <li><b>Три 1:</b> 1000 очков</li>
+                        <li><b>Три 2 / 3 / 4 / 5 / 6:</b> Номинал × 100 (напр. три 5 = 500)</li>
+                        <li><b>Малый стрит (1-2-3-4-5):</b> 500 очков</li>
+                        <li><b>Большой стрит (1-2-3-4-5-6):</b> 1500 очков</li>
+                    </ul>
+                </div>
+                <button class="btn-close-cheat-sheet-modal btn-medieval">Ну уж нет!</button>
             </div>
         </dialog>
     </section>

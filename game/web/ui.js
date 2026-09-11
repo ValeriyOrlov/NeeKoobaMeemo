@@ -34,3 +34,53 @@ export function showScreen(screenName) {
       setMusicMode('game');
   }
 }
+
+export function showWaitingOverlay(text = "Ожидание второго игрока...") {
+  let overlay = document.getElementById('waiting-overlay');
+  
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'waiting-overlay';
+    overlay.className = 'waiting-overlay';
+    overlay.innerHTML = `
+      <div class="waiting-content">
+        <div class="spinner"></div>
+        <p id="waiting-overlay-text">${text}</p>
+        <button id="cancel-waiting-btn" class="btn btn-secondary">Отменить</button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+  } else {
+    document.getElementById('waiting-overlay-text').innerText = text;
+    overlay.style.display = 'flex';
+  }
+}
+
+export function hideWaitingOverlay() {
+  const overlay = document.getElementById('waiting-overlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+  }
+}
+
+export function showGameStatus(text, duration = 4000) {
+  let statusEl = document.getElementById('game-status-toast');
+
+  if (!statusEl) {
+    statusEl = document.createElement('div');
+    statusEl.id = 'game-status-toast';
+    statusEl.className = 'status-toast';
+    document.body.appendChild(statusEl);
+  }
+
+  statusEl.innerText = text;
+  statusEl.classList.add('visible');
+
+  if (statusEl.hideTimeout) {
+    clearTimeout(statusEl.hideTimeout);
+  }
+
+  statusEl.hideTimeout = setTimeout(() => {
+    statusEl.classList.remove('visible');
+  }, duration);
+}

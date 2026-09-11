@@ -10,6 +10,10 @@ const profileBalance = document.getElementById('profile-balance');
 const profileStats = document.getElementById('profile-stats');
 const lobbyAvatar = document.getElementById('lobby-avatar-img');
 
+// Предотвращение параллельных запросов на обновление токена
+let isRefreshing = false;
+let refreshPromise = null;
+
 // Загрузка профиля из игрового сервера
 export async function loadProfile() {
   const token = localStorage.getItem('game_token');
@@ -47,6 +51,7 @@ export async function loadProfile() {
     } else {
       // Если токен закончился или невалиден
       localStorage.removeItem('game_token');
+      localStorage.removeItem('refresh_token');
       showScreen('auth');
     }
   } catch (error) {
@@ -56,13 +61,8 @@ export async function loadProfile() {
 }
 
 export async function getLeaderboard() {
-  const token = localStorage.getItem('game_token');
   try {
-    const response = await fetch(`${gameServer}/api/leaderboard`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
+    const response = await fetchWithAuth(`${gameServer}/api/leaderboard`);
     if (response.ok) {
       return await response.json();
     } else {
@@ -70,18 +70,15 @@ export async function getLeaderboard() {
       return [];
     }
   } catch (error) {
-    console.error('Ошибка сети');
+    console.error('Ошибка сети:', error);
     return [];
   }
 }
 
 // Получить список доступных комнат
 export async function getRooms() {
-  const token = localStorage.getItem('game_token');
   try {
-    const response = await fetch(`${gameServer}/api/rooms`, {
-      headers: { 'Authorization': `Bearer ${token}`}
-    });
+    const response = await fetchWithAuth(`${gameServer}/api/rooms`);
     if (response.ok) return await response.json();
     return [];
   } catch (error) {
@@ -92,12 +89,10 @@ export async function getRooms() {
 
 // Создать новую комнату со ставкой
 export async function createRoomReq(betAmount) {
-  const token = localStorage.getItem('game_token');
-  const response = await fetch(`${gameServer}/api/rooms`, {
+  const response = await fetchWithAuth(`${gameServer}/api/rooms`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({ bet_amount: Number(betAmount) })
   });
@@ -108,12 +103,10 @@ export async function createRoomReq(betAmount) {
 
 // Присоединиться к существующей комнате
 export async function joinRoomReq(roomId) {
-  const token = localStorage.getItem('game_token');
-  const response = await fetch(`${gameServer}/api/rooms/join?id=${roomId}`, {
+  const response = await fetchWithAuth(`${gameServer}/api/rooms/join?id=${roomId}`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
+      'Content-Type': 'application/json'
     }
   });
 
@@ -122,31 +115,49 @@ export async function joinRoomReq(roomId) {
 }
 
 export async function refreshToken() {
-  const refresh = localStorage.getItem('refresh_token');
-  if (!refresh) return null;
-
-  try {
-    const response = await fetch(`${authServer}/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: refresh })
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      localStorage.setItem('game_token', data.access_token);
-      localStorage.setItem('refresh_token', data.refresh_token);
-      return data.access_token;
-    }
-  } catch (error) {
-    console.error('Ошибка ротации токенов:', error);
+  // Если процесс обновления уже запущен, возвращаем существующий Promise
+  if (isRefreshing) {
+    return refreshPromise;
   }
 
-  // если refresh-токен невалиден (401) - чистим хранилище и возвращаем на логин
-  localStorage.removeItem('game_token');
-  localStorage.removeItem('refresh_token');
-  showScreen('auth');
-  return null;
+  isRefreshing = true;
+
+  refreshPromise = (async () => {
+    const refresh = localStorage.getItem('refresh_token');
+    if (!refresh) {
+      isRefreshing = false;
+      refreshPromise = null;
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${authServer}/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refresh })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('game_token', data.access_token);
+        localStorage.setItem('refresh_token', data.refresh_token);
+        return data.access_token;
+      }
+    } catch (error) {
+      console.error('Ошибка ротации токенов:', error);
+    } finally {
+      isRefreshing = false;
+      refreshPromise = null;
+    }
+
+    // Если обновление не удалось — чистим хранилище
+    localStorage.removeItem('game_token');
+    localStorage.removeItem('refresh_token');
+    showScreen('auth');
+    return null;
+  })();
+
+  return refreshPromise;
 }
 
 export async function fetchWithAuth(url, options = {}) {
