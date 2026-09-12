@@ -31,9 +31,9 @@ func main() {
 	playerStore := economy.NewDBStore(database)
 	var lobby = game.NewLobby(playerStore)
 
-	http.Handle("/sounds/", http.StripPrefix("/sounds/", http.FileServer(http.Dir("./game/sounds"))))
-	http.Handle("/pictures/", http.StripPrefix("/pictures/", http.FileServer(http.Dir("./game/pictures"))))
-	http.Handle("/", http.FileServer(http.Dir("./game/web")))
+	http.Handle("/sounds/", http.StripPrefix("/sounds/", http.FileServer(http.Dir("./sounds"))))
+	http.Handle("/pictures/", http.StripPrefix("/pictures/", http.FileServer(http.Dir("./pictures"))))
+	http.Handle("/", http.FileServer(http.Dir("./web")))
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		ws.ServeWs(w, r, lobby)
 	})

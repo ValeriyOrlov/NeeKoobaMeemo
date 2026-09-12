@@ -1,29 +1,25 @@
-# ЭТАП 1: Сборка игрового бэкенда
 FROM golang:alpine AS builder
 
 WORKDIR /app
 
+# Кэшируем зависимости
 COPY go.mod go.sum ./
 RUN go mod download
 
+# Копируем исходный код всего проекта
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o game-service cmd/server/main.go
+# Собираем игровой сервис по относительному пути модуля
+RUN CGO_ENABLED=0 GOOS=linux go build -o game-service ./game/cmd/server/main.go
 
-# ЭТАП 2: Финальный образ с веб-ресурсами
 FROM alpine:latest
-
 RUN apk --no-cache add ca-certificates
-
 WORKDIR /app
 
 COPY --from=builder /app/game-service .
-
-# Копирование статических ресурсов фронтенда
-COPY --from=builder /app/web ./web
-COPY --from=builder /app/pictures ./pictures
-COPY --from=builder /app/sounds ./sounds
+COPY --from=builder /app/game/web ./web
+COPY --from=builder /app/game/pictures ./pictures
+COPY --from=builder /app/game/sounds ./sounds
 
 EXPOSE 8081
-
 CMD ["./game-service"]

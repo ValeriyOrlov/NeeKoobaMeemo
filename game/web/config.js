@@ -5,8 +5,8 @@
 
   window.ENV = {
     // Автоматически берет хост (localhost или публичный IP)
-    GAME_SERVER_URL: `${protocol}//${host}:8081`,
-    AUTH_SERVER_URL: `${protocol}//${host}:8080`,
-    WS_URL: `${wsProtocol}//${host}:8081/ws`
+    GAME_SERVER_URL: `${protocol}//${host}`,
+    AUTH_SERVER_URL: `${protocol}//${host}/api/auth`,
+    WS_URL: `${wsProtocol}//${host}/ws`
   };
 })();
