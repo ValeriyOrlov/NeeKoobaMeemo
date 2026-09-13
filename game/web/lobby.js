@@ -34,6 +34,7 @@ const findRoomsModal = document.getElementById('find-rooms-modal');
 const rulesModal = document.getElementById('rules-modal');
 const roomsListDOM = document.getElementById('rooms-list');
 const roomBetInput = document.getElementById('room-bet-input');
+const roomScoreInput = document.getElementById('room-score-input');
 const btnConfirmCreate = document.getElementById('btn-confirm-create');
 const btnCloseCreate = document.getElementById('btn-close-createModal');
 const btnCloseFind = document.getElementById('btn-close-find');
@@ -128,10 +129,11 @@ btnCloseFind.addEventListener('click', () => findRoomsModal.close());
 btnConfirmCreate.addEventListener('click', async () => {
   try {
     const bet = roomBetInput.value;
+    const score = roomScoreInput.value || 3000;	
     if (!bet) {
       return alert('Нужно ввести ставку');
     }
-    const response = await createRoomReq(bet);
+    const response = await createRoomReq(bet, score);
     console.log('Комната создана! ID:', response.room_id);
     createRoomModal.close();
     connectWebSocket(response.room_id);

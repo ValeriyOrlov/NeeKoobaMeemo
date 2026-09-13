@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>NeeKoobaMeemo</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -86,6 +86,7 @@
                 <div class="medieval-card modal-content">
                     <h2>Создать стол</h2>
                     <input type="number" id="room-bet-input" placeholder="Размер ставки (золото)" min="10" step="10">
+		    <input type="number" id="room-score-input" placeholder="Очков для победы (по ум. 3000)" min="1000" step="500" value="3000">
                     <button id="btn-confirm-create" class="btn-medieval">Создать</button>
                     <button id="btn-close-createModal" class="btn-medieval">Отмена</button>
                 </div>
@@ -134,7 +135,21 @@
                 <button id="btn-close-rules" class="btn-medieval">Ясно-понятно...</button>
             </div>
         </dialog>
-
+	<!-- ... Добавьте новые модальные окна перед закрывающим </section> лобби ... -->
+	<dialog id="join-request-modal" class="modal">
+    	    <div class="medieval-card modal-content">
+        	<h2 id="join-request-msg">К вам подключается игрок</h2>
+        	<button id="btn-accept-join" class="btn-medieval">Впустить</button>
+        	<button id="btn-reject-join" class="btn-medieval">Отклонить</button>
+    	    </div>
+	</dialog>
+	<dialog id="join-rejected-modal" class="modal">
+    	    <div class="medieval-card modal-content">
+               <h2>Кажется, вас отклонили...</h2>
+               <p>Попробуйте подключиться в другую комнату или создайте свою.</p>
+               <button id="btn-close-rejected" class="btn-medieval">В таверну</button>
+            </div>
+	</dialog>
     </section>
     <section id="game-screen" class="screen hidden">
         <!--Зона противника-->
@@ -225,7 +240,7 @@
                         <li><b>Большой стрит (1-2-3-4-5-6):</b> 1500 очков</li>
                     </ul>
                 </div>
-                <button class="btn-close-cheat-sheet-modal btn-medieval">Ну уж нет!</button>
+                <button class="btn-close-cheat-sheet-modal btn-medieval">Продолжим..</button>
             </div>
         </dialog>
     </section>

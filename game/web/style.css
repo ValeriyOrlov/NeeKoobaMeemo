@@ -1,419 +1,119 @@
-/* Основной шрифт для кнопок, диалогов, лога и стилистических блоков */
-body, button, input, dialog, select, textarea {
-  font-family: 'Cormorant Garamond', serif;
-  font-weight: 600;
-  font-size: 16px;
+/* Базовые настройки, фиксы платформ и типографика */
+
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
-/* Выразительный готический шрифт для заголовков и карточек */
-h1, h2, h3, .medieval-card-heading, .game-status {
-  font-family: 'Cormorant Garamond', serif;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-
-/* Усиление акцента для готических кнопок */
-.btn-medieval, .controls-area button {
-  font-family: 'Cormorant Garamond', serif;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  position: fixed; /* Блокирует резиновый скролл в iOS Safari */
+  overflow: hidden;
+  -webkit-text-size-adjust: 100%; /* Запрещает автозум текста */
 }
 
 body {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100dvh;
-  margin: 0;
-  overflow: hidden;
+  height: 100dvh; /* Замена 100vh для учета панелей навигации iOS/Android */
   background-color: #0b0908;
-  font-family: 'MedievalSharp', cursive, serif;
 }
 
-dialog {
-  background: transparent; /* Делает фон абсолютно прозрачным */
-  border: none;             /* Убирает стандартную черную рамку */
-  box-shadow: none;  
-  overflow: hidden;
+/* Единый шрифт для всех элементов интерфейса */
+body, button, input, dialog, select, textarea, h1, h2, h3, .medieval-card-heading, .game-status, .player-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 600;
+  color: #ecf0f1;
 }
+
+h1, h2, h3, .medieval-card-heading, .game-status {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* Оптимизация сенсорного управления (отключение задержек и серой подсветки) */
+button, input, .dice, .avatar-option, .dice-3d, a, .player-avatar-btn {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
 img, svg, video {
   max-width: 100%;
-  height: auto; /* Сохраняет пропорции при сжатии */
+  height: auto;
+}
+
+/* Формы и элементы управления */
+.medieval-card input {
+  padding: 10px;
+  background: #2c3e50;
+  border: 1px solid #7f8c8d;
+  border-radius: 6px;
+  color: white;
+  font-size: 18px; /* Строго 16px+ для защиты от зума на iPhone */
+  width: 100%;
 }
 
 button {
-  padding: 0%;
+  padding: 0;
   background: transparent;
   border: none;
-}
-
-/* Зоны игроков: аватар по центру, имя под ним, статы по бокам */
-.player-area {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  justify-content: space-between;
-  padding: 15px 30px;
-  background-image: url('../pictures/player_area_clean.jpg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  width: 100%;
-  box-sizing: border-box;
-  box-shadow: inset 0 0 100px rgba(0,0,0,0.8);
-  color: #ecf0f1;
-  text-shadow: 1px 1px 3px black;
-  box-shadow: inset 0 0 50px rgba(0,0,0,0.8); 
-}
-
-.opponent-area {
-  position: relative;
-  background-image: url('../pictures/opponent-area.jpg');
-}
-
-.stats-box {
-  display: flex;
-  width: 100%;
-  flex-direction: row;
-  justify-content: space-between;
-}
-
-.player-profile {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  flex-grow: 1;
-}
-
-.player-profile h3 {
-  margin: 0;
-  font-size: 16px;
-  color: #ecf0f1;
-}
-
-.avatar-placeholder {
-    width: 100px;
-    height: 100px;
-    font-size: 18px;
-  }
-
-.avatar-placeholder img {
-  border-radius: 50%;
-}
-
-.player-avatar-container {
-  flex-direction: column;
-  position: relative;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 16px;
-}
-
-.player-avatar-container img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.player-avatar-btn {
-  border-radius: 50%;
-}
-
-/* Сетка выбора в модальном окне */
-.avatar-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin: 15px 0;
-}
-
-.avatar-option {
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  border: 2px solid #915508;
   cursor: pointer;
-  object-fit: cover;
-  transition: transform 0.2s, border-color 0.2s;
 }
 
-.avatar-option:hover {
-  transform: scale(1.1);
-  border-color: #f1c40f;
-}
-
-.player-name {
-  margin: 0;
-  z-index: 2;
-  font-weight: bold;
-}
-
-.stat-box {
-  display: flex;
-  align-items:center;
-  justify-content: center;
-  min-width: 120px;
-  font-size: 15px;
-  padding: 8px 12px;
+.btn-medieval {
+  background: rgba(20, 20, 20, 0.45);
+  border: 2px solid #f1c40f;
+  padding: 10px;
   border-radius: 6px;
-}
-
-.left-stat {
-  text-align: left;
-}
-
-.right-stat {
-  text-align: right;
-}
-
-/* Игровой стол */
-.table-area {
-  flex-grow: 1; 
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  width: 100vw;
-  padding: 20px;
-  gap: 15px;
-  background-image: url('../pictures/table.jpg');
-  background-size: cover;
-  background-position: center;
-  /* Добавим легкое затемнение поверх картинки, чтобы текст лучше читался */
-  box-shadow: inset 0 0 100px rgba(0,0,0,0.8); 
-}
-
-/* Панель управления */
-.controls-area {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-}
-
-/* Базовый стиль для боковых кнопок ("Отложить" и "В банк") */
-.controls-area button {
-  background-color: transparent;
-  color: white;
-  font-size: 15px;
-  font-weight: bold;
-  cursor: pointer;
   transition: background 0.2s, transform 0.1s;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
 }
 
-.controls-area button:hover:not(:disabled) {
-  transform: translateY(-2px);
-}
+.btn-medieval:hover { background-color: #b56c0a; }
+.btn-medieval:active { transform: translateY(2px); }
 
-.controls-area button:active:not(:disabled) {
-  transform: translateY(4px);
-  box-shadow: 
-    inset 4px 4px 8px rgba(0, 0, 0, 0.8),
-    inset -1px -1px 3px rgba(255, 255, 255, 0.2);
-}
+/* Игровые кнопки (бросок, банк, отложить) */
 
-/* Неактивные кнопки */
-.controls-area button:disabled {
-  background-color: transparent !important;
-  border-color: transparent !important;
-  cursor: not-allowed;
-  opacity: 0.5;
-  transform: none !important;
-  box-shadow: none !important;
-}
-
+/* Скорректированные стили для кнопок с изображениями */
 .btn-roll, .btn-bank, .btn-select {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   height: 120px;
   width: 120px;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   border: none;
-  border-radius: 40%;
-  color: white;
-  text-shadow:1px 1px 4px black, 0 0 10px rgba(0, 0, 0, 0.8);
-  box-shadow: 
-    inset 3px 3px 6px rgba(255, 255, 255, 0.4),
-    inset -4px -4px 8px rgba(0, 0, 0, 0.6),
-    0 6px 10px rgba(0, 0, 0, 0.5);
-  transition: transform 0.1s, box-shadow 0.1s;
-}
-
-/* Главная центральная кнопка броска */
-.btn-roll {
-  background-image: url('../pictures/btn_roll_img.png');
-
-}
-
-.btn-select {
-  background-image: url('../pictures/btn_select_img.png');
-}
-
-.btn-bank {
-  background-image: url('../pictures/btn_bank_img.png');
-}
-
-/* Стол для бросков */
-.dice-container {
-  position: relative;
-  width: 100%;
-  height: 250px;
-  perspective: 1200px;
-  margin: 20px 0;
-}
-
-/* Обертка для позиционирования на столе */
-.dice-wrapper {
-  position: absolute;
-  width: 60px;
-  height: 60px;
-  transition: transform 0.3s, opacity 0.3s; /* Для плавного исчезновения при откладывании */
-}
-
-/* Сам 3D кубик */
-.dice-3d {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  transform-style: preserve-3d;
-  /* Плавная анимация вращения на 1.2 секунды */
-  transition: transform 1.2s cubic-bezier(0.1, 0.9, 0.2, 1);
-  cursor: pointer;
-}
-
-/* Эффект выделения (отложенного) кубика */
-.dice-3d.selected-3d .face {
-  border-color: #2ecc71;
-  box-shadow: inset 0 0 15px rgba(46, 204, 113, 0.5);
-}
-
-/* Настройка граней */
-.face {
-  position: absolute;
-  width: 60px;
-  height: 60px;
-  background: #f4f4f4;
-  border: 2px solid #555;
-  border-radius: 10px;
-  box-sizing: border-box;
-  box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
-  
-  /* Grid для точек */
-  display: grid;
-  grid-template-areas:
-      "a . c"
-      "d e f"
-      "g . i";
-  padding: 6px;
-}
-
-/* Сами точки */
-.dot {
-  width: 12px;
-  height: 12px;
-  background-color: #2c3e50;
   border-radius: 50%;
-  margin: auto;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
-}
-
-/* Расстановка граней в пространстве (собираем коробку) */
-.front  { transform: rotateY(0deg) translateZ(30px); }
-.back   { transform: rotateY(180deg) translateZ(30px); }
-.right  { transform: rotateY(90deg) translateZ(30px); }
-.left   { transform: rotateY(-90deg) translateZ(30px); }
-.top    { transform: rotateX(90deg) translateZ(30px); }
-.bottom { transform: rotateX(-90deg) translateZ(30px); }
-
-
-/* Расстановка точек по Grid-сетке для разных значений */
-.face-1 .dot:nth-child(1) { grid-area: e; }
-
-.face-2 .dot:nth-child(1) { grid-area: a; }
-.face-2 .dot:nth-child(2) { grid-area: i; }
-
-.face-3 .dot:nth-child(1) { grid-area: a; }
-.face-3 .dot:nth-child(2) { grid-area: e; }
-.face-3 .dot:nth-child(3) { grid-area: i; }
-
-.face-4 .dot:nth-child(1) { grid-area: a; }
-.face-4 .dot:nth-child(2) { grid-area: c; }
-.face-4 .dot:nth-child(3) { grid-area: g; }
-.face-4 .dot:nth-child(4) { grid-area: i; }
-
-.face-5 .dot:nth-child(1) { grid-area: a; }
-.face-5 .dot:nth-child(2) { grid-area: c; }
-.face-5 .dot:nth-child(3) { grid-area: e; }
-.face-5 .dot:nth-child(4) { grid-area: g; }
-.face-5 .dot:nth-child(5) { grid-area: i; }
-
-.face-6 .dot:nth-child(1) { grid-area: a; }
-.face-6 .dot:nth-child(2) { grid-area: c; }
-.face-6 .dot:nth-child(3) { grid-area: d; }
-.face-6 .dot:nth-child(4) { grid-area: f; }
-.face-6 .dot:nth-child(5) { grid-area: g; }
-.face-6 .dot:nth-child(6) { grid-area: i; }
-
-.game-log-container {
-  height: 120px;
-  overflow-y: auto;
-  list-style-type: none;
-  padding-inline-start: 0;
-  margin-bottom: 5px;
-  border-radius: 8px;
-  font-size: 13px;
-  color: #130c02;
-  text-align: center;
-  background-color: rgba(30, 30, 30, 0.7);
-  background-image: url('../pictures/game-log-display.jpg');
-  background-size: cover;
-  background-position: center;
-  /* Добавим легкое затемнение поверх картинки, чтобы текст лучше читался */
-  box-shadow: inset 0 0 50px rgba(0,0,0,0.8); 
-}
-
-.game-log-container, .rooms-list-container {
-  width: 90%;
-  max-width: 400px;
-  box-sizing: border-box; /* Границы не будут увеличивать итоговую ширину */
-}
-
-.dice {
-  width: 50px;
-  height: 50px;
-  background-color: white;
-  color: black;
-  border: 2px solid black;
-  border-radius: 8px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 24px;
+  color: #fff;
   font-weight: bold;
-  cursor: pointer;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-  transition: transform 0.1s;
+  text-shadow: 1px 1px 4px black, 0 0 10px rgba(0, 0, 0, 0.9);
+  box-shadow: inset 3px 3px 6px rgba(255, 255, 255, 0.3), inset -4px -4px 8px rgba(0, 0, 0, 0.6), 0 6px 10px rgba(0, 0, 0, 0.5);
+  transition: transform 0.1s, box-shadow 0.1s, filter 0.2s;
 }
 
-.dice:hover {
-  transform: scale(1.05);
+.btn-roll { background-image: url('../pictures/btn_roll_img.png'); }
+.btn-select { background-image: url('../pictures/btn_select_img.png'); }
+.btn-bank { background-image: url('../pictures/btn_bank_img.png'); }
+
+/* Интерактивные состояния (нажатие) */
+.btn-roll:active, .btn-bank:active, .btn-select:active {
+  transform: translateY(2px) scale(0.96);
+  box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.5), 0 2px 5px rgba(0, 0, 0, 0.5);
 }
 
-.dice.selected {
-  background-color: #2ecc71;
-  color: white;
-  border: 2px solid #27ae60;
+/* Заблокированное состояние (не ваш ход) */
+.btn-roll:disabled, .btn-bank:disabled, .btn-select:disabled {
+  cursor: not-allowed;
+  filter: grayscale(80%) brightness(50%);
+  transform: none;
+  box-shadow: none;
 }
 
-/* Управление экранами */
+/* Структура экранов, зоны игроков и модальные окна */
 .screen {
   display: flex;
   flex-direction: column;
@@ -421,36 +121,60 @@ button {
   align-items: center;
   height: 100dvh;
   width: 100%;
-  box-sizing: border-box;
   background-color: #1a252f;
-  background-image: url('../pictures/table-area.jpg'); /* Сохраняем атмосферу таверны */
+  background-image: url('../pictures/table-area.jpg');
   background-size: cover;
   background-position: center;
-  overflow: hidden;
   position: relative;
 }
 
-.welcome {
-  background-image: url('../pictures/auth-screen.jpg'); /* Сохраняем атмосферу таверны */
-}
+.screen.hidden { display: none !important; }
+.welcome { background-image: url('../pictures/auth-screen.jpg'); }
+.lobby { background-image: url('../pictures/lobby.jpg'); }
 
-.lobby {
-  background-image: url('../pictures/lobby.jpg'); /* Сохраняем атмосферу таверны */
-}
-
-.tavern-header {
+.player-area {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+  padding: 15px 30px;
+  width: 100%;
+  background-size: cover;
+  background-position: center;
+  text-shadow: 1px 1px 3px black;
+  box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
 }
 
-.screen.hidden {
-  display: none !important;
+.self-area { background-image: url('../pictures/player_area_clean.jpg'); }
+.opponent-area { background-image: url('../pictures/opponent-area.jpg'); position: relative; }
+
+.table-area {
+  flex-grow: 1; 
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%; /* Замена 100vw */
+  padding: 20px;
+  gap: 15px;
+  background-image: url('../pictures/table.jpg');
+  background-size: cover;
+  background-position: center;
+  box-shadow: inset 0 0 100px rgba(0,0,0,0.8); 
+}
+
+dialog {
+  background: transparent;
+  border: none;
+  box-shadow: none;  
+  overflow: hidden;
+  max-width: 100%;
 }
 
 .medieval-card {
-  width: 90%; /* Занимает 90% экрана телефона */
-  max-width: 320px; /* Не будет слишком широкой на ПК */
+  width: 100%;
+  max-width: 320px;
   background: rgba(20, 20, 20, 0.36);
   border: 3px solid #915508;
   border-radius: 12px;
@@ -458,317 +182,108 @@ button {
   display: flex;
   flex-direction: column;
   gap: 15px;
-  box-shadow: 0 8px 25px rgba(54, 53, 53, 0.179);
-  color: #ecf0f1;
   text-align: center;
 }
 
 .modal-content {
-  width: 80%; /* Занимает 90% экрана телефона */
-  max-width: 300px; /* Не будет слишком широкой на ПК */
-  background: rgba(20, 20, 20, 0.947);
+  background: rgba(20, 20, 20, 0.95);
+  max-width: 300px;
 }
 
-.medieval-card-heading {
-  text-align: center;
-  color: #b56c0a;
-}
+/* Профили игроков, аватары и статистика */
+.stats-box { display: flex; width: 100%; flex-direction: row; justify-content: space-between; }
+.player-profile { display: flex; flex-direction: column; align-items: center; gap: 5px; flex-grow: 1; }
+.player-profile h3 { margin: 0; font-size: 18px; color: #ecf0f1; }
+.avatar-placeholder { width: 100px; height: 100px; font-size: 18px; }
+.avatar-placeholder img { border-radius: 50%; }
+.player-avatar-container { flex-direction: column; position: relative; width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 18px; }
+.player-avatar-container img { max-width: 100%; height: auto; border-radius: 50%; object-fit: cover; }
+.player-avatar-btn { border-radius: 50%; }
+.avatar-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 15px 0; }
+.avatar-option { width: 70px; height: 70px; border-radius: 50%; border: 2px solid #915508; cursor: pointer; object-fit: cover; transition: transform 0.2s, border-color 0.2s; }
+.avatar-option:hover { transform: scale(1.1); border-color: #f1c40f; }
+.player-name { margin: 0; z-index: 2; font-weight: bold; }
+.stat-box { display: flex; align-items:center; justify-content: center; min-width: 120px; font-size: 16px; padding: 8px 12px; border-radius: 6px; }
+.left-stat { text-align: left; }
+.right-stat { text-align: right; }
+.profile-card { text-shadow: 1px 1px 3px black; }
 
-.medieval-card input {
-  padding: 10px;
-  background: #2c3e50;
-  border: 1px solid #7f8c8d;
-  border-radius: 6px;
-  color: white;
-  font-size: 14px;
-}
+/* Интерфейс 3D-кубиков и панель управления */
+.controls-area { display: flex; justify-content: center; align-items: center; gap: 12px; }
+.controls-area button:disabled { border-color: transparent !important; cursor: not-allowed; opacity: 0.5; transform: none !important; box-shadow: none !important; }
+.dice-container { position: relative; width: 100%; height: 350px; perspective: 1200px; margin: 20px 0; }
+.dice-wrapper { position: absolute; width: 60px; height: 60px; transition: transform 0.3s, opacity 0.3s; }
+.dice-3d { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 1.2s cubic-bezier(0.1, 0.9, 0.2, 1); cursor: pointer; }
+.dice-3d.selected-3d .face { border-color: #2ecc71; box-shadow: inset 0 0 15px rgba(46, 204, 113, 0.5); }
+.face { position: absolute; width: 60px; height: 60px; background: #f4f4f4; border: 2px solid #555; border-radius: 10px; box-sizing: border-box; box-shadow: inset 0 0 10px rgba(0,0,0,0.3); display: grid; grid-template-areas: "a . c" "d e f" "g . i"; padding: 6px; }
+.dot { width: 12px; height: 12px; background-color: #2c3e50; border-radius: 50%; margin: auto; box-shadow: inset 0 2px 4px rgba(0,0,0,0.6); }
+.front  { transform: rotateY(0deg) translateZ(30px); }
+.back   { transform: rotateY(180deg) translateZ(30px); }
+.right  { transform: rotateY(90deg) translateZ(30px); }
+.left   { transform: rotateY(-90deg) translateZ(30px); }
+.top    { transform: rotateX(90deg) translateZ(30px); }
+.bottom { transform: rotateX(-90deg) translateZ(30px); }
+.face-1 .dot:nth-child(1) { grid-area: e; }
+.face-2 .dot:nth-child(1) { grid-area: a; } .face-2 .dot:nth-child(2) { grid-area: i; }
+.face-3 .dot:nth-child(1) { grid-area: a; } .face-3 .dot:nth-child(2) { grid-area: e; } .face-3 .dot:nth-child(3) { grid-area: i; }
+.face-4 .dot:nth-child(1) { grid-area: a; } .face-4 .dot:nth-child(2) { grid-area: c; } .face-4 .dot:nth-child(3) { grid-area: g; } .face-4 .dot:nth-child(4) { grid-area: i; }
+.face-5 .dot:nth-child(1) { grid-area: a; } .face-5 .dot:nth-child(2) { grid-area: c; } .face-5 .dot:nth-child(3) { grid-area: e; } .face-5 .dot:nth-child(4) { grid-area: g; } .face-5 .dot:nth-child(5) { grid-area: i; }
+.face-6 .dot:nth-child(1) { grid-area: a; } .face-6 .dot:nth-child(2) { grid-area: c; } .face-6 .dot:nth-child(3) { grid-area: d; } .face-6 .dot:nth-child(4) { grid-area: f; } .face-6 .dot:nth-child(5) { grid-area: g; } .face-6 .dot:nth-child(6) { grid-area: i; }
+.dice { width: 50px; height: 50px; background-color: white; color: black; border: 2px solid black; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 24px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: transform 0.1s; }
+.dice:hover { transform: scale(1.05); }
+.dice.selected { background-color: #2ecc71; color: white; border: 2px solid #27ae60; }
 
-.btn-medieval {
-  background: rgba(20, 20, 20, 0.458);
-  color: white;
-  border: 2px solid #f1c40f;
-  padding: 10px;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.2s;
-}
+/* Игровые логи, списки комнат и статусы */
+.game-log-container, .rooms-list-container { width: 90%; max-width: 400px; box-sizing: border-box; }
+.game-log-container {
+ height: 120px;
+ overflow-y: auto;
+ list-style-type: none;
+ padding-inline-start: 0;
+ margin-bottom: 5px;
+ border-radius: 8px;
+ font-size: 18px; color: #3e2708;
+ text-align: center;
+ background-color: rgba(248, 233, 177, 0.55);
+ box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+ }
+.rooms-list-container { height: 300px; width: 100%; overflow-y: auto; padding-inline-start: 0; list-style-type: none; margin-bottom: 5px; border-radius: 8px; border: 1px solid #915508; font-size: 13px; color: rgb(244, 236, 236); text-align: center; background-color: rgba(30, 30, 30, 0.7); background-image: url('../pictures/game-log-display.jpg'); background-size: cover; background-position: center; box-shadow: inset 0 0 50px rgba(0,0,0,0.8); }
+.rooms-list-row { display: flex; justify-content: space-between; align-items: center; font-size: 1rem; text-shadow: 1px 1px 4px black, 0 0 10px rgba(0, 0, 0, 0.8); border-bottom: 1px solid #070707; }
+.game-status { background: #f4e4bc; background-image: linear-gradient(to right, #d4b474, #f4e4bc 15%, #f4e4bc 85%, #d4b474); color: #130c02; padding: 12px 40px; font-weight: bold; font-size: 18px; text-align: center; border-top: 3px solid #8b4513; border-bottom: 3px solid #8b4513; border-radius: 20px / 50px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.7), inset 0 0 20px rgba(139, 69, 19, 0.4); min-width: 250px; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; }
+.game-status.visible { opacity: 1; z-index: 3; visibility: visible; }
 
-.btn-medieval:hover {
-  background-color: #b56c0a;
-}
+/* Меню аватара и таймер */
+#avatar-menu { position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; padding: 10px; background: rgba(20, 15, 10, 0.92); background-image: url('../pictures/game-log-display.jpg'); background-size: cover; border: 2px solid #8b4513; border-radius: 12px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(0, 0, 0, 0.7); z-index: 100; width: max-content; max-width: 90vw; }
+#avatar-menu button { display: flex; align-items: center; justify-content: center; width: 100%; padding: 6px 12px; margin: 0; cursor: pointer; font-family: 'Cormorant Garamond', serif; font-weight: 700; font-size: 14px; text-align: center; box-sizing: border-box; transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease; }
+#avatar-menu button:hover { transform: translateY(-2px); }
+#avatar-menu button:active { transform: translateY(1px); }
+#avatar-menu button:not(.surrender-btn) { background: #f4e4bc; background-image: linear-gradient(to right, #c9a463, #f4e4bc 12%, #f4e4bc 88%, #c9a463); color: #3e2708; border: none; border-top: 2px solid #8b4513; border-bottom: 2px solid #8b4513; border-radius: 10px / 25px; box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4), inset 0 0 8px rgba(139, 69, 19, 0.3); text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4); }
+#avatar-menu button:not(.surrender-btn):hover { filter: brightness(1.08); box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(139, 69, 19, 0.2); }
+#avatar-menu .surrender-btn { background: #721c24; background-image: linear-gradient(to right, #491217, #8b0000 15%, #a71d2a 85%, #491217); color: #ffffff; border: 1px solid #ff4d4d; border-radius: 8px; box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(0, 0, 0, 0.6); text-shadow: 1px 1px 3px black; margin-bottom: 4px; }
+#avatar-menu .surrender-btn:hover { background-image: linear-gradient(to right, #5c171e, #a30000 15%, #bf2131 85%, #5c171e); box-shadow: 0 0 10px rgba(255, 77, 77, 0.5), inset 0 0 10px rgba(0, 0, 0, 0.5); }
+.surrender-btn { color: red; font-weight: bold; }
+#timer-display { position: absolute; top: 10%; left: 50%; transform: translate(-50%); margin-top: 6px; width: fit-content; padding: 4px 14px; font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 700; color: #3e2708; background: #f4e4bc; border: 1px solid #915508; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6); text-align: center; z-index: 1; transition: opacity 0.2s ease; background-image: linear-gradient(to right, #d4b474, #f4e4bc 15%, #f4e4bc 85%, #d4b474); }
 
-.toggle-auth-text {
-  font-size: 12px;
-  color: #bdc3c7;
-}
+/* Оверлеи ожидания, загрузка и уведомления */
+.waiting-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100dvh; background: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+.waiting-content { background: #2a2a2a; padding: 24px 32px; border-radius: 12px; text-align: center; color: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.5); display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.spinner { width: 40px; height: 40px; border: 4px solid rgba(255, 255, 255, 0.2); border-top-color: #f39c12; border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.status-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(20, 20, 20, 0.9); color: #fff; border: 1px solid rgba(255, 255, 255, 0.15); padding: 12px 24px; border-radius: 8px; font-size: 14px; z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
+.status-toast.visible { opacity: 1; }
 
-.toggle-auth-text a {
-  color: #f1c40f;
-  text-decoration: none;
-}
+/* Формы и утилиты */
+.tavern-header { display: flex; flex-direction: column; align-items: center; }
+.toggle-auth-text { font-size: 12px; color: #bdc3c7; }
+.toggle-auth-text a { color: #f1c40f; text-decoration: none; }
+.medieval-form { display: flex; flex-direction: column; }
+.form-error-msg { color: red; background-color: #2c3e50; }
+.hidden { display: none!important; }
 
-.medieval-form {
-  display: flex;
-  flex-direction: column;
-}
-
-.form-error-msg {
-  color: red;
-  background-color: #2c3e50;
-}
-
-.profile-card {
-  text-shadow: 1px 1px 3px black;
-}
-
-.game-status {
-  background: #f4e4bc; /* Основной цвет старой бумаги */
-  background-image: linear-gradient(to right, #d4b474, #f4e4bc 15%, #f4e4bc 85%, #d4b474);
-  color: #130c02;
-  padding: 12px 40px;
-  font-weight: bold;
-  font-size: 18px;
-  text-align: center;
-  
-  /* Верхняя и нижняя окантовки */
-  border-top: 3px solid #8b4513;
-  border-bottom: 3px solid #8b4513;
-  
-  /* Асимметричное скругление для эффекта пергамента */
-  border-radius: 20px / 50px; 
-  
-  /* Внутреннее загрязнение и внешняя тень */
-  box-shadow: 
-    0 5px 15px rgba(0, 0, 0, 0.7), 
-    inset 0 0 20px rgba(139, 69, 19, 0.4);
-  min-width: 250px;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.3s ease, visibility 0.3s ease;
-}
-
-.game-status.visible {
-  opacity: 1;
-  z-index: 3;
-  visibility: visible;
-}
-
-.rooms-list-container {
-  height: 300px;
-  width: 100%;
-  overflow-y: auto;
-  padding-inline-start: 0;
-  list-style-type: none;
-  margin-bottom: 5px;
-  border-radius: 8px;
-  border: 1px solid #915508;
-  font-size: 13px;
-  color: rgb(244, 236, 236);
-  text-align: center;
-  background-color: rgba(30, 30, 30, 0.7);
-  background-image: url('../pictures/game-log-display.jpg');
-  background-size: cover;
-  background-position: center;
-  /* Добавим легкое затемнение поверх картинки, чтобы текст лучше читался */
-  box-shadow: inset 0 0 50px rgba(0,0,0,0.8); 
-}
-
-.rooms-list-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 1rem;
-  text-shadow:1px 1px 4px black, 0 0 10px rgba(0, 0, 0, 0.8);
-  border-bottom: 1px solid #070707; /* Толщина, стиль и цвет линии */
-}
-
-/* Простые стили для меню */
-#avatar-menu {
-  position: absolute;
-  bottom: 110%;
-  left: 50%;
-  transform: translateX(-50%); /* Ровное центрирование над аватаром */
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px;
-  background: rgba(20, 15, 10, 0.92);
-  background-image: url('../pictures/game-log-display.jpg');
-  background-size: cover;
-  border: 2px solid #8b4513;
-  border-radius: 12px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(0, 0, 0, 0.7);
-  z-index: 100;
-  width: max-content;
-  max-width: 90vw; /* Блокируем выход за ширину экрана */
-}
-
-.hidden {
-    display: none!important;
-}
-
-#avatar-menu button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: 6px 12px;
-  margin: 0;
-  cursor: pointer;
-  font-family: 'Cormorant Garamond', serif;
-  font-weight: 700;
-  font-size: 14px;
-  text-align: center;
-  box-sizing: border-box;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
-}
-
-#avatar-menu button:hover {
-  transform: translateY(-2px);
-}
-
-#avatar-menu button:active {
-  transform: translateY(1px);
-}
-
-/* Кнопки фраз в виде мини-свитков из пергамента */
-#avatar-menu button:not(.surrender-btn) {
-  background: #f4e4bc;
-  /* Градиент имитирует свернутый пергаментный свиток */
-  background-image: linear-gradient(to right, #c9a463, #f4e4bc 12%, #f4e4bc 88%, #c9a463);
-  color: #3e2708;               /* Чернила */
-  
-  border: none;
-  border-top: 2px solid #8b4513;
-  border-bottom: 2px solid #8b4513;
-  border-radius: 10px / 25px;   /* Закругление краев свитка */
-  
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4), inset 0 0 8px rgba(139, 69, 19, 0.3);
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
-}
-
-#avatar-menu button:not(.surrender-btn):hover {
-  filter: brightness(1.08);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(139, 69, 19, 0.2);
-}
-
-/* Кнопка сдачи — красный готический флаг / тревожное предупреждение */
-#avatar-menu .surrender-btn {
-  background: #721c24;
-  background-image: linear-gradient(to right, #491217, #8b0000 15%, #a71d2a 85%, #491217);
-  color: #ffffff;
-  
-  border: 1px solid #ff4d4d;
-  border-radius: 8px;
-  
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(0, 0, 0, 0.6);
-  text-shadow: 1px 1px 3px black;
-  margin-bottom: 4px;           /* Выделяем кнопку сдачи от остальных */
-}
-
-#avatar-menu .surrender-btn:hover {
-  background-image: linear-gradient(to right, #5c171e, #a30000 15%, #bf2131 85%, #5c171e);
-  box-shadow: 0 0 10px rgba(255, 77, 77, 0.5), inset 0 0 10px rgba(0, 0, 0, 0.5);
-}
-
-.surrender-btn {
-    color: red;
-    font-weight: bold;
-}
-
-#timer-display {
-  position: absolute;
-  top: 10%;
-  left: 50%;
-  transform: translate(-50%);
-  margin-top: 6px;
-  width: fit-content;
-  /*margin: 5px auto 0 auto;*/
-  padding: 4px 14px;
-
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 18px;
-  font-weight: 700;
-  color: #3e2708;
-
-  background: #f4e4bc; /* Основной цвет старой бумаги */
-  border: 1px solid #915508;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-  text-align: center;
-  z-index: 1;
-  transition: opacity 0.2s ease;
-  /* Градиент затемняет края, имитируя форму свитка */
-  background-image: linear-gradient(to right, #d4b474, #f4e4bc 15%, #f4e4bc 85%, #d4b474);
-
-}
-
-@media (max-height: 915px) {
-  /* Уменьшаем отступы в зонах игроков */
-  .player-area {
-    padding: 8px 20px;
-  }
-
-  /* Уменьшаем размер аватарки */
-  .avatar-placeholder {
-    width: 80px;
-    height: 80px;
-    font-size: 18px;
-    border-radius: 50%;
-    border: 2px solid #f1c40f;
-  }
-
-  /* Сжимаем внутренние зазоры игрового стола */
-  .table-area {
-    padding: 10px;
-    gap: 8px;
-  }
-
-  /* Главное: уменьшаем высоту зоны броска кубиков, чтобы освободить место */
-  .dice-container {
-    height: 160px; /* Было 250px */
-    margin: 5px 0;
-  }
-
-  /* Уменьшаем расстояние между кнопками управления */
-  .controls-area {
-    gap: 12px;
-    margin-top: 5px;
-  }
-
-  /* Пропорционально уменьшаем огромные круглые кнопки */
-  .btn-roll, .btn-bank, .btn-select, .controls-area button {
-    width: 80px;   /* Было 120px */
-    height: 80px;  /* Было 120px */
-    font-size: 13px; /* Текст чуть меньше, чтобы помещался в круг */
-  }
-}
-
-/* Дополнительный ультра-компактный режим для очень маленьких экранов (например, телефоны горизонтально) */
-@media (max-height: 600px) {
-  .player-area {
-    padding: 4px 15px;
-  }
-  .dice-container {
-    height: 110px;
-    max-width: 600px; 
-  }
-  
-  .btn-roll, .btn-bank, .btn-select, .controls-area button {
-    width: 60px;
-    height: 60px;
-    font-size: 11px;
-  }
-  .avatar-placeholder {
-    display: none; /* Прячем аватарку на ультра-маленьких экранах для экономии места */
-  }
-}
-
+/* Адаптивность (Media Queries) для мобильных устройств */
+/* Стандартные смартфоны вертикально */
 @media (max-width: 480px) {
-  .controls-area {
-    gap: 10px;
-  }
+  .controls-area { gap: 10px; }
   .btn-roll, .btn-bank, .btn-select {
     width: 80px;
     height: 80px;
@@ -781,135 +296,46 @@ button {
   }
 }
 
-/* 2. ОГРАНИЧЕНИЕ ШИРИНЫ ДЛЯ ШИРОКИХ ЭКРАНОВ И ДЕСКТОПА */
+/* Компактные экраны (например, iPhone SE) */
+@media (max-height: 915px) {
+  .player-area { padding: 8px 20px; }
+  .avatar-placeholder {
+    width: 80px;
+    height: 80px;
+  }
+  .table-area { padding: 10px; gap: 8px; }
+  .dice-container { height: 250px; margin: 5px 0; }
+  .controls-area { gap: 12px; margin-top: 5px; }
+  .btn-roll, .btn-bank, .btn-select, .controls-area button {
+    width: 80px;
+    height: 80px;
+  }
+}
+
+/* Ландшафтный режим на смартфонах */
+@media (orientation: landscape) and (max-height: 650px), (max-height: 650px) {
+  .table-area { background-position: bottom; padding: 5px; gap: 4px; }
+  .player-area { padding: 4px 15px; }
+  .avatar-placeholder { width: 50px; height: 50px; }
+  .stat-box { min-width: 80px; font-size: 12px; padding: 3px 6px; }
+  .dice-container {
+    height: 120px;
+    margin: 0 auto;
+    max-width: 800px;
+  }
+  .game-log-container { height: 60px; font-size: 11px; }
+  .btn-roll, .btn-bank, .btn-select { width: 65px; height: 65px; }
+}
+
+/* Десктопы и планшеты (ограничение ширины) */
 @media (min-width: 768px) {
   .screen {
-    max-width: 750px; /* Замораживаем ширину только на экранах от 768px */
+    max-width: 750px;
+    margin: 0 auto;
     border-left: 2px solid #915508;
     border-right: 2px solid #915508;
     box-shadow: 0 0 60px rgba(0, 0, 0, 0.95);
   }
-
-  .table-area {
-    background-size: initial;
-    background-position: bottom;
-  }
-
-  .dice-container {
-    max-width: 750px; /* Замораживаем ширину только на экранах от 768px */
-  }
-}
-
-/* 3. ЛАНДШАФТНЫЙ РЕЖИМИ И МАЛАЯ ВЫСОТА (Landscape / ПК с низким окном) */
-@media (orientation: landscape) and (max-height: 650px), (max-height: 650px) {
-  .table-area {
-    background-size: initial;
-    background-position: bottom;
-  }
-  
-  .player-area {
-    padding: 4px 15px;
-  }
-  
-  .avatar-placeholder {
-    width: 50px;
-    height: 50px;
-  }
-
-  .stat-box {
-    min-width: 80px;
-    font-size: 12px;
-    padding: 3px 6px;
-  }
-
-  .table-area {
-    padding: 5px;
-    gap: 4px;
-  }
-
-  .dice-container {
-    height: 120px; /* Сжимаем зону кубиков, чтобы не вылезали за стол */
-    margin: 2px 0;
-    margin: 0 auto;     /* Центрируем игровой стол на широких экранах */
-    box-sizing: border-box;
-    max-width: 800px;   /* Ограничиваем максимальную ширину стола */
-  }
-
-  .game-log-container {
-    height: 60px; /* Уменьшаем лог */
-    font-size: 11px;
-  }
-
-  .game-status {
-    padding: 4px 15px;
-    font-size: 14px;
-    min-width: 180px;
-  }
-
-  .btn-roll, .btn-bank, .btn-select {
-    width: 65px;
-    height: 65px;
-    font-size: 11px;
-  }
-}
-
-.waiting-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.waiting-content {
-  background: #2a2a2a;
-  padding: 24px 32px;
-  border-radius: 12px;
-  text-align: center;
-  color: #fff;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(255, 255, 255, 0.2);
-  border-top-color: #f39c12;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.status-toast {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(20, 20, 20, 0.9);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 14px;
-  z-index: 2000;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
-.status-toast.visible {
-  opacity: 1;
+  .table-area { background-position: bottom; }
+  .dice-container { max-width: 750px; }
 }

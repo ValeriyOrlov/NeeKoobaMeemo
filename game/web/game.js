@@ -1,5 +1,5 @@
 import { loadProfile } from "./api.js";
-import { showScreen, setIsGameActive } from "./ui.js";
+import { showScreen, setIsGameActive, hideWaitingOverlay } from "./ui.js";
 
 // Звуковые эффекты
 const sfxRoll = new Audio('../sounds/dice.wav');
@@ -66,6 +66,28 @@ const surrenderModalMsg = document.querySelector(".surrender-modal-msg");
 const surrenderBtn = document.querySelector(".btn-surrender");
 const surrenderModalCloseBtn = document.querySelector(".btn-close-surrender-modal")
 
+const joinRequestModal = document.getElementById('join-request-modal');
+const joinRequestMsg = document.getElementById('join-request-msg');
+const btnAcceptJoin = document.getElementById('btn-accept-join');
+const btnRejectJoin = document.getElementById('btn-reject-join');
+const joinRejectedModal = document.getElementById('join-rejected-modal');
+const btnCloseRejected = document.getElementById('btn-close-rejected');
+
+btnAcceptJoin.addEventListener('click', () => {
+    sendAction('ACCEPT_JOIN');
+    joinRequestModal.close();
+});
+
+btnRejectJoin.addEventListener('click', () => {
+    sendAction('REJECT_JOIN');
+    joinRequestModal.close();
+});
+
+btnCloseRejected.addEventListener('click', () => {
+    joinRejectedModal.close();
+    loadProfile(); // Возврат в лобби
+});
+
 let selectedDiceIndices = new Set();
 let currentDiceValues = [];
 let myUsername = "";
@@ -74,14 +96,14 @@ function getUsernameFromToken() {
     const token = localStorage.getItem('game_token');
     if (!token) return "Путник";
     try {
-        // JWT состоит из 3 частей. Берем вторую (payload) и декодируем из Base64
-        const payload = JSON.parse(atob(token.split('.')[1]));
+        // Декодирование Base64 с поддержкой кириллицы
+        const payload = JSON.parse(decodeURIComponent(escape(atob(token.split('.')[1]))));
         return payload.username || "Путник";
     } catch (e) {
         console.error("Ошибка декодирования токена:", e);
         return "Путник";
     }
-};
+}
 
 export function setGameSocket(ws) {
     socket = ws;
@@ -278,7 +300,8 @@ function renderDice(diceArray, isNewRoll = true) {
                 diceEl.style.transform = `rotateX(${targetRot.x + extraSpinsX}deg) rotateY(${targetRot.y + extraSpinsY}deg)`;
             }, 50);
 
-            diceEl.addEventListener('click', () => {
+            diceEl.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); // Защита от эмуляции двойного клика браузером
                 if (!isMyTurn) return;
                 
                 diceEl.classList.toggle('selected-3d');
@@ -324,7 +347,9 @@ function renderDice(diceArray, isNewRoll = true) {
                 const newDiceEl = diceEl.cloneNode(true);
                 diceEl.parentNode.replaceChild(newDiceEl, diceEl);
                 
-                newDiceEl.addEventListener('click', () => {
+                // Замена click на pointerdown
+                newDiceEl.addEventListener('pointerdown', (e) => {
+                    e.preventDefault();
                     if (!isMyTurn) return;
                     sfxSelect.currentTime = 0;
                     sfxSelect.play();
@@ -385,22 +410,23 @@ let turnInterval;
 const TURN_DURATION = 90; // 90 секунд
 
 function startVisualTimer() {
-    // Очищаем предыдущий таймер, если он был
     clearInterval(turnInterval);
-    let timeLeft = TURN_DURATION;
     const timerDisplay = document.getElementById("timer-display");
     
-    timerDisplay.innerText = `Время на ход: ${timeLeft}с`;
+    // Фиксируем абсолютное время завершения хода
+    const endTime = Date.now() + TURN_DURATION * 1000;
+    
+    timerDisplay.innerText = `Время на ход: ${TURN_DURATION}с`;
 
     turnInterval = setInterval(() => {
-        timeLeft--;
-        timerDisplay.innerText = `Время на ход: ${timeLeft}с`;
+        // Высчитываем реальный остаток времени
+        const timeLeft = Math.round((endTime - Date.now()) / 1000);
         
         if (timeLeft <= 0) {
             clearInterval(turnInterval);
             timerDisplay.innerText = "Ожидание сервера...";
-            // Фронтенд ничего не отправляет при 0. 
-            // Он просто ждет событие TURN_CHANGED или GAME_OVER от бэкенда.
+        } else {
+            timerDisplay.innerText = `Время на ход: ${timeLeft}с`;
         }
     }, 1000);
 }
@@ -554,6 +580,16 @@ const processTurnChange = () => {
             setPlayerAvatars(msg.avatars);
             break;
 
+	case "JOIN_REQUEST":
+            joinRequestMsg.innerText = `К вам подключается игрок ${msg.message}. Впустить или отклонить?`;
+            joinRequestModal.showModal();
+            break;
+
+        case "JOIN_REJECTED":
+            hideWaitingOverlay();
+            joinRejectedModal.showModal();
+            break;
+
         case "ERROR":
             // 1. Снимаем визуальное выделение со всех кубиков
             diceContainer.querySelectorAll('.dice-3d.selected-3d').forEach(diceEl => {
@@ -563,7 +599,7 @@ const processTurnChange = () => {
             // 2. Очищаем Set выбранных индексов
             selectedDiceIndices.clear();
 
-            // 3. Выводим статусное сообщение и логируем ошибку вместо alert
+            // 3. Выводим статусное сообщение и логируем ошибку
             showGameStatus(msg.message || "Ошибка хода!", 4000);
             printLog(`⚠️ ${msg.message || "Некорректное действие"}`);
             break;

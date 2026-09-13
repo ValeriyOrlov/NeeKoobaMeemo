@@ -88,13 +88,13 @@ export async function getRooms() {
 }
 
 // Создать новую комнату со ставкой
-export async function createRoomReq(betAmount) {
+export async function createRoomReq(betAmount, targetScore) {
   const response = await fetchWithAuth(`${gameServer}/api/rooms`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ bet_amount: Number(betAmount) })
+    body: JSON.stringify({ bet_amount: Number(betAmount), target_score: Number(targetScore) })
   });
 
   if (!response.ok) throw new Error(await response.text());

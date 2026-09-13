@@ -13,6 +13,7 @@ type RoomInfo struct {
 	ID        string `json:"id"`
 	Creator   string `json:"creator"`
 	BetAmount int    `json:"bet_amount"`
+	TergetScore int `json:"target_score"`
 }
 
 type Lobby struct {
@@ -35,14 +36,14 @@ func generateID() string {
 	return hex.EncodeToString(bytes)
 }
 
-func (l *Lobby) CreateRoom(creator string, betAmount int) (*Room, error) {
+func (l *Lobby) CreateRoom(creator string, betAmount int, targetScore int) (*Room, error) {
 	err := l.Store.DeductBalance(creator, betAmount)
 	if err != nil {
 		return nil, err
 	}
 
 	id := generateID()
-	room := NewRoom(id, l, betAmount, l.Store)
+	room := NewRoom(id, l, betAmount, targetScore, l.Store)
 	// Добавляем создателя в список игроков (пока он один)
 	room.Players = append(room.Players, creator)
 

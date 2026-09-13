@@ -43,6 +43,12 @@ services:
       - AUTH_DB_PASSWORD=${AUTH_DB_PASSWORD}
       - AUTH_DB_NAME=${AUTH_DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
+      - SMTP_HOST=smtp.yandex.ru
+      - SMTP_PORT=587
+      - SMTP_USERNAME=valerrriyorlov@yandex.ru
+      - SMTP_PASSWORD=ycatbcawbuqirjkc
+      - EMAIL_FROM=valerrriyorlov@yandex.ru
+      - APP_URL=http://200.169.183.126
     depends_on:
       - auth-db
     networks:

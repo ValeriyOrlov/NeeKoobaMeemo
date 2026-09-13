@@ -110,6 +110,7 @@ func LeaderboardHandler(store economy.PlayerStore) http.HandlerFunc {
 
 type CreateRoomRequest struct {
 	BetAmount int `json:"bet_amount"`
+	TargetScore int `json:"target_score"`
 }
 
 // GET /api/rooms
@@ -136,7 +137,7 @@ func CreateRoomHandler(lobby *game.Lobby) http.HandlerFunc {
 			return
 		}
 
-		room, err := lobby.CreateRoom(username, req.BetAmount)
+		room, err := lobby.CreateRoom(username, req.BetAmount, req.TargetScore)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusPaymentRequired)
 			return

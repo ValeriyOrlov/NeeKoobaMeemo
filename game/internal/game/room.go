@@ -28,6 +28,7 @@ type Room struct {
 
 	// Экономика
 	BetAmount int                 // Размер ставки
+	TargetScore int		      // Очки для победы
 	Pot       int                 // общий банк
 	Store     economy.PlayerStore // ссылка на хранилище
 
@@ -42,9 +43,13 @@ type Room struct {
 	HasRolled   bool                   // Флаг броска
 	TurnTimer   *time.Timer            // Таймер на ход 90 секунд
 	Disconnects map[string]*time.Timer // Таймеры переподключения
+
+	//Подключающийся игрок
+	PendingClient *Client
+	PendingPlayer string
 }
 
-func NewRoom(id string, lobby *Lobby, betAmount int, store economy.PlayerStore) *Room {
+func NewRoom(id string, lobby *Lobby, betAmount int, targetScore int, store economy.PlayerStore) *Room {
 	return &Room{
 		ID:          id,
 		Clients:     make(map[*Client]bool),
@@ -53,6 +58,7 @@ func NewRoom(id string, lobby *Lobby, betAmount int, store economy.PlayerStore) 
 		DiceCount:   6,
 		Banks:       make([]int, 2),
 		BetAmount:   betAmount,
+		TargetScore: targetScore,
 		Store:       store,
 	}
 }
@@ -89,6 +95,25 @@ func (r *Room) AddClient(client *Client) {
 			r.Mu.Unlock()
 			r.sendToClient(client, models.EventMessage{Type: "ERROR", Message: "Комната заполнена!"})
 			client.Conn.Close()
+			return
+		}
+
+	// Если это второй игрок (подключается к создателю) - отправляем запрос
+		if len(r.Players) == 1 && !r.IsStarted {
+			r.PendingClient = client
+			r.PendingPlayer = playerName
+			
+			// Находим клиента-создателя для отправки запроса
+			for c := range r.Clients {
+				if c.PlayerName == r.Players[0] {
+					r.sendToClient(c, models.EventMessage{
+						Type:    "JOIN_REQUEST",
+						Message: playerName,
+					})
+					break
+				}
+			}
+			r.Mu.Unlock()
 			return
 		}
 
@@ -290,6 +315,7 @@ func (r *Room) stopTurnTimerLocked() {
 func (r *Room) finishGameBySurrenderLocked(surrenderedPlayer string, reason string) {
 	r.stopTurnTimerLocked()
 	r.IsStarted = false
+	r.lobby.RemoveRoom(r.ID)
 
 	var winner string
 	for _, p := range r.Players {
@@ -453,6 +479,44 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 	case "SURRENDER":
 		r.finishGameBySurrenderLocked(client.PlayerName, fmt.Sprintf("Игрок %s сдался.", client.PlayerName))
 		return
+
+
+	case "ACCEPT_JOIN":
+		if r.PendingPlayer == "" || client.PlayerName != r.Players[0] {
+			r.Mu.Unlock()
+			return
+		}
+		r.Mu.Unlock() // Отпускаем мьютекс для транзакции
+		if err := r.Store.DeductBalance(r.PendingPlayer, r.BetAmount); err != nil {
+			r.sendToClient(r.PendingClient, models.EventMessage{Type: "ERROR", Message: "У игрока недостаточно золота!"})
+			r.PendingClient.Conn.Close()
+			r.Mu.Lock()
+			r.PendingClient = nil
+			r.PendingPlayer = ""
+			r.Mu.Unlock()
+			return
+		}
+
+		r.Mu.Lock()
+		r.Players = append(r.Players, r.PendingPlayer)
+		r.Clients[r.PendingClient] = true
+		r.PendingClient = nil
+		r.PendingPlayer = ""
+		r.Mu.Unlock()
+		r.StartGame()
+		return
+
+	case "REJECT_JOIN":
+		if r.PendingPlayer == "" || client.PlayerName != r.Players[0] {
+			r.Mu.Unlock()
+			return
+		}
+		r.sendToClient(r.PendingClient, models.EventMessage{Type: "JOIN_REJECTED"})
+		r.PendingClient.Conn.Close()
+		r.PendingClient = nil
+		r.PendingPlayer = ""
+		r.Mu.Unlock()
+		return
 	}
 
 	// 2. Проверка очередности хода
@@ -597,6 +661,7 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 		if r.Banks[r.CurrentTurn] >= 3000 {
 			r.stopTurnTimerLocked()
 			r.IsStarted = false
+			r.lobby.RemoveRoom(r.ID)
 			// 1. Выдаём куш победителю и засчитываем игру обоим
 			for _, pName := range r.Players {
 				isWinner := (pName == activePlayer)
