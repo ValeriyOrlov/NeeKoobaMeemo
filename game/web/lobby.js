@@ -136,7 +136,7 @@ btnConfirmCreate.addEventListener('click', async () => {
     const response = await createRoomReq(bet, score);
     console.log('Комната создана! ID:', response.room_id);
     createRoomModal.close();
-    connectWebSocket(response.room_id);
+    connectWebSocket(response.room_id, false);
   } catch (error) {
     console.error(`Ошибка создания комнаты: `, error);
   }
@@ -154,17 +154,17 @@ export const findGame = async () => {
     roomsData.forEach(room => {
       const newRoomLi = document.createElement('li');
       newRoomLi.classList.add('rooms-list-row');
-      newRoomLi.innerText = `Стол игрока ${room.creator}\n Ставка: ${room.bet_amount}`;
+      newRoomLi.innerText = `Стол игрока ${room.creator}\nСтавка: ${room.bet_amount}\nЦель: ${room.target_score}`;
       const joinGameBtn = document.createElement('button');
       joinGameBtn.innerText = 'Войти';
       joinGameBtn.classList.add('btn-medieval');
-    
+
       joinGameBtn.addEventListener('click', async () => {
         try {
           const res = await joinRoomReq(room.id);
           console.log('Успешный вход в игру! ID:', res.room_id);
           findRoomsModal.close();
-          connectWebSocket(res.room_id);
+          connectWebSocket(res.room_id, true);
         } catch (error) {
           console.error('Ошибка входа в игру: ', error)
         }

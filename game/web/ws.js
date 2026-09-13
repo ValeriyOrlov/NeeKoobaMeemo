@@ -4,7 +4,7 @@ import { showScreen, showGameStatus, showWaitingOverlay, hideWaitingOverlay } fr
 
 const wsHost = window.ENV.WS_URL;
 
-export async function connectWebSocket(roomId) {
+export async function connectWebSocket(roomId, isJoining = false) {
   const token = await getValidToken();
   if (!token) {
     console.warn("Нет токена для WebSocket. Игрок не авторизован.");
@@ -23,7 +23,11 @@ export async function connectWebSocket(roomId) {
     setGameSocket(socket);
 
     if (roomId) {
-      showWaitingOverlay("Комната создана. Ожидаем второго игрока...");
+      if (isJoining) {
+        showWaitingOverlay("Ожидаем согласия создателя комнаты");
+      } else {
+        showWaitingOverlay("Комната создана. Ожидаем второго игрока...");
+      }
 
       // Привязываем отмену к зарытию сокета
       const cancelBtn = document.getElementById('cancel-waiting-btn');

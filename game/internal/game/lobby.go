@@ -10,10 +10,10 @@ import (
 )
 
 type RoomInfo struct {
-	ID        string `json:"id"`
-	Creator   string `json:"creator"`
-	BetAmount int    `json:"bet_amount"`
-	TergetScore int `json:"target_score"`
+	ID          string `json:"id"`
+	Creator     string `json:"creator"`
+	BetAmount   int    `json:"bet_amount"`
+	TargetScore int    `json:"target_score"`
 }
 
 type Lobby struct {
@@ -63,9 +63,10 @@ func (l *Lobby) GetAvailableRooms() []RoomInfo {
 		// Показываем только те комнаты, где ждем второго игрока
 		if !room.IsStarted && len(room.Players) == 1 {
 			available = append(available, RoomInfo{
-				ID:        room.ID,
-				Creator:   room.Players[0],
-				BetAmount: room.BetAmount,
+				ID:          room.ID,
+				Creator:     room.Players[0],
+				BetAmount:   room.BetAmount,
+				TargetScore: room.TargetScore,
 			})
 		}
 	}
@@ -96,19 +97,10 @@ func (l *Lobby) JoinRoom(roomID string, username string) (*Room, error) {
 			return room, nil
 		}
 	}
-	// ПРоверяем, есть ли ещё место
+	// Проверяем, есть ли ещё место
 	if room.IsStarted || len(room.Players) >= 2 {
 		return nil, fmt.Errorf("комната уже заполнена или игра началась")
 	}
-
-	// Транзакция - пытаемся списать деньги
-	err := l.Store.DeductBalance(username, room.BetAmount)
-	if err != nil {
-		return nil, err // деньги не списались - игрок не добавлен
-	}
-
-	// деньги успешно списаны - добавляем игрока
-	room.Players = append(room.Players, username)
 
 	return room, nil
 }

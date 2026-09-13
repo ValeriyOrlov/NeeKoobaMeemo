@@ -1,11 +1,27 @@
 import { loadProfile } from "./api.js";
 import { showScreen, setIsGameActive, hideWaitingOverlay } from "./ui.js";
+import { sfx } from './sfx.js';
 
+window.addEventListener('DOMContentLoaded', () => {
+    // Включаем WebAudio на первый клик/тач в документе
+    const unlockAudio = () => {
+        sfx.init();
+        
+        // Загружаем эффекты
+        sfx.loadSound('roll', '../sounds/dice.wav');
+        sfx.loadSound('bank', '../sounds/bank.wav');
+        sfx.loadSound('select', '../sounds/writingPen.wav');
+
+        document.removeEventListener('pointerdown', unlockAudio);
+    };
+
+    document.addEventListener('pointerdown', unlockAudio);
+});
 // Звуковые эффекты
-const sfxRoll = new Audio('../sounds/dice.wav');
+/*const sfxRoll = new Audio('../sounds/dice.wav');
 const sfxBank = new Audio('../sounds/bank.wav');
 const sfxSelect = new Audio('../sounds/writingPen.wav');
-
+*/
 let socket;
 let isMyTurn = false;
 let isZonkPending = false;
@@ -156,17 +172,18 @@ function getSelectedDiceValues() {
 
 // === НАЖАТИЯ НА КНОПКИ УПРАВЛЕНИЯ ===
 btnRoll.addEventListener('click', () => {
-    sfxRoll.currentTime = 0;
-    sfxRoll.play();
+   /* sfxRoll.currentTime = 0;
+    sfxRoll.play();*/
+    sfx.play('roll');
     selectedDiceIndices.clear();
     sendAction('ROLL');
 });
 
 // Кнопка "В банк" — сохраняет очки и передает ход сопернику
 btnBank.addEventListener('click', () => {
-    sfxBank.currentTime = 0;
-    sfxBank.play();
-    
+   /* sfxBank.currentTime = 0;
+    sfxBank.play();*/
+    sfx.play('bank');
     const selectedVals = getSelectedDiceValues();
     sendAction('BANK', selectedVals);
     selectedDiceIndices.clear();
@@ -181,9 +198,10 @@ btnSelect.addEventListener('click', () => {
         printLog(warningMsg);
         return;
     }
-
+    /*	
     sfxSelect.currentTime = 0;
-    sfxSelect.play();
+    sfxSelect.play();*/
+    sfx.play('select');	
     sendAction('SELECT_DICE', selectedVals);
 });
 
@@ -526,6 +544,8 @@ const processTurnChange = () => {
             setIsGameActive(false);
             stopVisualTimer();
             toggleControls(false);
+	    diceContainer.innerHTML = '';
+	    gameLogContainer.innerHTML = '';
             printLog(msg.message || "🏆 Игра завершена!");
             gameoverModalMsg.textContent = msg.message;
             gameoverModal.showModal();

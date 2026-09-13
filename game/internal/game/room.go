@@ -27,10 +27,10 @@ type Room struct {
 	lobby   *Lobby     // Ссылка на родительский менеджер комнат
 
 	// Экономика
-	BetAmount int                 // Размер ставки
-	TargetScore int		      // Очки для победы
-	Pot       int                 // общий банк
-	Store     economy.PlayerStore // ссылка на хранилище
+	BetAmount   int                 // Размер ставки
+	TargetScore int                 // Очки для победы
+	Pot         int                 // общий банк
+	Store       economy.PlayerStore // ссылка на хранилище
 
 	// Игровое состояние комнаты
 	IsStarted   bool                   // Старт игры
@@ -98,11 +98,11 @@ func (r *Room) AddClient(client *Client) {
 			return
 		}
 
-	// Если это второй игрок (подключается к создателю) - отправляем запрос
+		// Если это второй игрок (подключается к создателю) - отправляем запрос
 		if len(r.Players) == 1 && !r.IsStarted {
 			r.PendingClient = client
 			r.PendingPlayer = playerName
-			
+
 			// Находим клиента-создателя для отправки запроса
 			for c := range r.Clients {
 				if c.PlayerName == r.Players[0] {
@@ -243,8 +243,8 @@ func (r *Room) resetTurnTimerLocked() {
 			delta  int
 		}
 
-		// Проверяем, не набрал ли игрок 3000 очков за счет этого авто-сохранения
-		if r.Banks[r.CurrentTurn] >= 3000 {
+		// Проверяем, не набрал ли игрок выйгрышную сумму очков за счет этого авто-сохранения
+		if r.Banks[r.CurrentTurn] >= r.TargetScore {
 			r.stopTurnTimerLocked()
 			r.IsStarted = false
 
@@ -458,13 +458,6 @@ func (r *Room) Leave(client *Client) {
 func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 	r.Mu.Lock()
 
-	// 1. Если игра ещё не началась (ждём второго игрока)
-	if !r.IsStarted {
-		r.Mu.Unlock()
-		r.sendToClient(client, models.EventMessage{Type: "ERROR", Message: "Ожидаем второго игрока..."})
-		return
-	}
-
 	// === ДЕЙСТВИЯ, ДОСТУПНЫЕ В ЛЮБОЙ МОМЕНТ (Даже не в свой ход) ===
 	switch action.Type {
 	case "CHAT":
@@ -479,7 +472,6 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 	case "SURRENDER":
 		r.finishGameBySurrenderLocked(client.PlayerName, fmt.Sprintf("Игрок %s сдался.", client.PlayerName))
 		return
-
 
 	case "ACCEPT_JOIN":
 		if r.PendingPlayer == "" || client.PlayerName != r.Players[0] {
@@ -516,6 +508,12 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 		r.PendingClient = nil
 		r.PendingPlayer = ""
 		r.Mu.Unlock()
+		return
+	}
+	// Если игра ещё не началась (ждём второго игрока)
+	if !r.IsStarted {
+		r.Mu.Unlock()
+		r.sendToClient(client, models.EventMessage{Type: "ERROR", Message: "Ожидаем второго игрока..."})
 		return
 	}
 
@@ -658,7 +656,7 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 		r.Banks[r.CurrentTurn] += r.RoundScore
 
 		// Проверка на победу!
-		if r.Banks[r.CurrentTurn] >= 3000 {
+		if r.Banks[r.CurrentTurn] >= r.TargetScore {
 			r.stopTurnTimerLocked()
 			r.IsStarted = false
 			r.lobby.RemoveRoom(r.ID)
