@@ -8,6 +8,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Monomakh+Display&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="preload" as="image" href="../pictures/auth-screen.webp" fetchpriority="high">
+    <link rel="preload" as="image" href="../pictures/lobby.webp" fetchpriority="high">
+    <link rel="preload" as="image" href="../pictures/table.webp" type="image/webp">
 </head>
 <body>
     <!-- Экран авторизации -->
@@ -39,12 +42,6 @@
             <p class="toggle-auth-text">Построено Валерием Орловым. 2026</p>
         </div>
     </section>
-    <dialog id="register-confirm-modal" class="modal">
-                <div class="medieval-card modal-content">
-                    <h2>На указанную Вами почту улетело письмо! Чтобы завершить регистрацию, необходимо пройти по ссылке в письме</h2>
-                    <button id="btn-close-create" class="btn-medieval">Хорошо!</button>
-                </div>
-            </dialog>
     <!-- Экран личного кабинета -->
     <section id="lobby-screen" class="lobby screen hidden">
         <div class="medieval-card profile-card">
@@ -54,103 +51,18 @@
                 </div>
                 <h2 id="profile-username">Путник</h2>
             </div>
-            <!-- Модальное окно выбора аватара -->
-            <dialog id="avatar-picker-modal" class="modal">
-                <div class="medieval-card modal-content">
-                    <h2>Выберите свой облик</h2>
-                    <div class="avatar-grid">
-                        <img src="../pictures/avatars/fat_cat.jpg" data-avatar="fat_cat" class="avatar-option">
-                        <img src="../pictures/avatars/mad_queen.jpg" data-avatar="mad_queen" class="avatar-option">
-                        <img src="../pictures/avatars/music_cat.jpg" data-avatar="music_cat" class="avatar-option">
-                        <img src="../pictures/avatars/prophet.jpg" data-avatar="prophet" class="avatar-option">
-                        <img src="../pictures/avatars/rider_girl.jpg" data-avatar="rider_girl" class="avatar-option">
-                    </div>
-                    <button id="btn-close-avatar-picker" class="btn-medieval">Отмена</button>
-                </div>
-            </dialog>
             <div class="wallet-box">
                 <p>💰 Золото в кошельке: <span id="profile-balance">0</span></p>
                 <p>🏆 Победы / Игры: <span id="profile-stats">0 / 0</span></p>
             </div>
-
             <button id="btn-create-game" class="btn-medieval btn-large">Создать комнату</button>
             <button id="btn-find-games" class="btn-medieval btn-large">Поиск комнат</button>
             <button id="btn-leaderboard" class="btn-medieval btn-large">Статистика</button>
             <button id="btn-rules" class="btn-medieval btn-large">Правила игры</button>
             <button id="btn-logout" class="btn-medieval btn-large">Покинуть таверну</button>
-
             <!-- Кнопка управления музыкой (лютня) -->
-            <button id="music-toggle-btn" class="btn-lute btn-medieval" title="Включить/Выключить музыку">🪕 Музыка</button>
-            <!-- Модалка: Создать комнату -->
-            <dialog id="create-room-modal" class="modal">
-                <div class="medieval-card modal-content">
-                    <h2>Создать стол</h2>
-                    <input type="number" id="room-bet-input" placeholder="Размер ставки (золото)" min="10" step="10">
-		    <input type="number" id="room-score-input" placeholder="Очков для победы (по ум. 3000)" min="1000" step="500" value="3000">
-                    <button id="btn-confirm-create" class="btn-medieval">Создать</button>
-                    <button id="btn-close-createModal" class="btn-medieval">Отмена</button>
-                </div>
-            </dialog>
-
-            <!-- Модалка: Поиск комнат -->
-            <dialog id="find-rooms-modal" class="modal">
-                <div class="medieval-card modal-content">
-                    <h2>Свободные столы</h2>
-                    <ul id="rooms-list" class="rooms-list-container">
-                        <!-- Сюда JS будет вставлять комнаты -->
-                    </ul>
-                    <button id="btn-close-find" class="btn-medieval">Закрыть</button>
-                </div>
-            </dialog>
+            <button id="music-toggle-btn" class="btn-lute btn-medieval" title="Включить/Выключить музыку">🪕 Музыка</button>           
         </div>
-        <dialog id="leaderboard-modal" class="modal">
-            <div class="medieval-card modal-content">
-                <h2>Рейтинг Таверны</h2>
-                <table class="leaderboard-table">
-                    <thead>
-                        <tr>
-                            <th>Имя</th>
-                            <th>Победы / Игры</th>
-                            <th>Золото</th>
-                        </tr>
-                    </thead>
-                    <tbody id="leaderboard-body">
-                        <!-- место для игроков -->
-                    </tbody>
-                </table>
-                <button id="btn-close-leaderboard" class="btn-medieval">Закрыть</button>
-            </div>
-        </dialog>
-        <dialog id="rules-modal" class="modal">
-            <div class="medieval-card game-rules-content">
-                <h2>Правила игры</h2>
-                <p><b>Цель игры:</b> Первым установленное количество очков.</p>
-		<p>Количество очков устанавливается при создании комнаты.</p>
-                <span>Игроки ходят по очереди. В начале хода нужно сделать бросок и выбрать призовые кости!</span>
-                <span>Призовые кости - это кости, которые приносят очки:</span>
-                <span>Очки приносят единицы (100) и пятерки (50), а также комбинации из 3+ одинаковых костей.</span>
-                <span>После броска необходимо отложить минимум один призовой кубик.</span>
-                <span>Если отложены все 6 кубиков — вы получаете право на повторный бросок всех 6 костей («Маааё почтение!»).</span>
-                <span>Если при броске не выпало ни одной призовой кости — очки раунда сгорают, ход передаётся противнику!</span>
-                <span>Вы можете забанковать очки в любой момент, передав ход противнику.</span>
-                <button id="btn-close-rules" class="btn-medieval">Ясно-понятно...</button>
-            </div>
-        </dialog>
-	<!-- ... Добавьте новые модальные окна перед закрывающим </section> лобби ... -->
-	<dialog id="join-request-modal" class="modal">
-    	    <div class="medieval-card modal-content">
-        	<h2 id="join-request-msg">К вам подключается игрок</h2>
-        	<button id="btn-accept-join" class="btn-medieval">Впустить</button>
-        	<button id="btn-reject-join" class="btn-medieval">Отклонить</button>
-    	    </div>
-	</dialog>
-	<dialog id="join-rejected-modal" class="modal">
-    	    <div class="medieval-card modal-content">
-               <h2>Кажется, вас отклонили...</h2>
-               <p>Попробуйте подключиться в другую комнату или создайте свою.</p>
-               <button id="btn-close-rejected" class="btn-medieval">В таверну</button>
-            </div>
-	</dialog>
     </section>
     <section id="game-screen" class="screen hidden">
         <!--Зона противника-->
@@ -215,36 +127,131 @@
                 <button class="btn-bank">В банк</button>
             </div>
         </div>
-        <dialog id="gameover-modal" class="modal">
-            <div class="medieval-card modal-content">
-                <h2 class="gameover-modal-msg">Игра окончена!</h2>
-                <button class="btn-close-gameover-modal btn-medieval">Вернуться в таверну</button>
-            </div>
-        </dialog>
-        <dialog id="surrender-modal" class="modal">
-            <div class="medieval-card modal-content">
-                <h2 class="surrender-modal-msg">Игра окончена!</h2>
-                <button class="btn-surrender btn-medieval">Сдаться</button>
-                <button class="btn-close-surrender-modal btn-medieval">Ну уж нет!</button>
-            </div>
-        </dialog>
-        <dialog id="cheat-sheet-modal" class="modal">
-            <div class="medieval-card modal-content">
-                <h2>🎲 Призовые комбинации</h2>
-                <div class="modal-content combo-list">
-                    <ul>
-                        <li><b>1:</b> 100 очков</li>
-                        <li><b>5:</b> 50 очков</li>
-                        <li><b>Три 1:</b> 1000 очков</li>
-                        <li><b>Три 2 / 3 / 4 / 5 / 6:</b> Номинал × 100 (напр. три 5 = 500)</li>
-                        <li><b>Малый стрит (1-2-3-4-5):</b> 500 очков</li>
-                        <li><b>Большой стрит (1-2-3-4-5-6):</b> 1500 очков</li>
-                    </ul>
-                </div>
-                <button class="btn-close-cheat-sheet-modal btn-medieval">Продолжим..</button>
-            </div>
-        </dialog>
     </section>
+    <dialog id="avatar-picker-modal" class="modal">
+        <div class="medieval-card modal-content">
+            <h2>Выберите свой облик</h2>
+            <div class="avatar-grid">
+                <img src="../pictures/avatars/fat_cat.jpg" data-avatar="fat_cat" class="avatar-option" loading="lazy">
+                <img src="../pictures/avatars/mad_queen.jpg" data-avatar="mad_queen" class="avatar-option" loading="lazy">
+                <img src="../pictures/avatars/music_cat.jpg" data-avatar="music_cat" class="avatar-option" loading="lazy">
+                <img src="../pictures/avatars/prophet.jpg" data-avatar="prophet" class="avatar-option" loading="lazy">
+                <img src="../pictures/avatars/rider_girl.jpg" data-avatar="rider_girl" class="avatar-option" loading="lazy">
+            <div>
+            <button id="btn-close-avatar-picker" class="btn-medieval">Отмена</button>
+         </div>
+    </dialog>
+    <dialog id="register-confirm-modal" class="modal">
+        <div class="medieval-card modal-content">
+            <h2>На указанную Вами почту улетело письмо! Чтобы завершить регистрацию, необходимо пройти по ссылке в письме</h2>
+            <button id="btn-close-create" class="btn-medieval">Хорошо!</button>
+        </div>
+    </dialog>
+    <!-- Модалка: Создать комнату -->
+    <dialog id="create-room-modal" class="modal">
+        <div class="medieval-card modal-content">
+            <h2>Создать стол</h2>
+            <input type="number" id="room-bet-input" placeholder="Размер ставки (золото)" min="10" step="10">
+	    <input type="number" id="room-score-input" placeholder="Очков для победы (по ум. 3000)" min="1000" step="500" value="3000">
+            <button id="btn-confirm-create" class="btn-medieval">Создать</button>
+            <button id="btn-close-createModal" class="btn-medieval">Отмена</button>
+         </div>
+    </dialog>
+    <!-- Модалка: Поиск комнат -->
+    <dialog id="find-rooms-modal" class="modal">
+         <div class="medieval-card modal-content">
+             <h2>Свободные столы</h2>
+             <ul id="rooms-list" class="rooms-list-container">
+             <!-- Сюда JS будет вставлять комнаты -->
+             </ul>
+             <button id="btn-close-find" class="btn-medieval">Закрыть</button>
+         </div>
+    </dialog>
+    <dialog id="leaderboard-modal" class="modal">
+        <div class="medieval-card modal-content">
+            <h2>Рейтинг Таверны</h2>
+            <table class="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th>Имя</th>
+                        <th>Победы / Игры</th>
+                        <th>Золото</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-body">
+                <!-- место для игроков -->
+                </tbody>
+            </table>
+            <button id="btn-close-leaderboard" class="btn-medieval">Закрыть</button>
+        </div>
+    </dialog>
+    <dialog id="rules-modal" class="modal">
+        <div class="medieval-card game-rules-content">
+            <h2>Правила игры</h2>
+            <p><b>Цель игры:</b> Первым набрать установленное количество очков - количество очков устанавливается при создании комнаты</p>
+	    <span>Игроки ходят по очереди. В начале хода нужно сделать бросок и выбрать призовые кости!</span>
+            <span>Призовые кости - это кости, которые приносят очки:</span>
+            <span>Очки приносят единицы и пятерки, а также комбинации:</span>
+            <ul class="dice-rules-list combo-list">
+                <li class="dice-1"> 100 очков</li>
+                <li class="dice-5"> 50 очков</li>
+                <li class="dice-triple-1"> 1000 очков</li>
+                <li class="dice-triple-any"> Номинал × 100 (напр. три 5 = 500)</li>
+                <li class="dice-small-straight"><b>Малый стрит: </b> 500 очков</li>
+                <li class="dice-large-straight"><b>Большой стрит: </b> 1500 очков</li>
+            </ul>
+	    <span>После броска необходимо отложить минимум один призовой кубик.</span>
+	    <span>Отложенные кубики убираются со стола - вы можете либо бросить оставшиеся кубики, либо положить в банк отложенную сумму. Ход заканчивается тогда, когда у вас кончились кости, либо за бросок не выпало ни одной призовой кости</span>
+            <span>В последнем случае — очки раунда сгорают, ход передаётся противнику!</span>
+	    <span>Если за один бросок отложены все 6 кубиков — вы получаете право на повторный бросок всех 6 костей («Маааё почтение!»).</span>            
+	    <span>Ваш ход заканчивается и передаётся противнику сразу же после того, как Вы положите золото в банк или Вам не выпадет ни одной призовой кости.</span>
+	    <span>Для взаимодействия с противником Вы можете нажать на свой аватар и выбрать одну из предложенных реплик.</span>
+            <button id="btn-close-rules" class="btn-medieval">Ясно-понятно...</button>
+        </div>
+    </dialog>
+    <dialog id="join-request-modal" class="modal">
+        <div class="medieval-card modal-content">
+            <h2 id="join-request-msg">К вам подключается игрок</h2>
+            <button id="btn-accept-join" class="btn-medieval">Впустить</button>
+            <button id="btn-reject-join" class="btn-medieval">Отклонить</button>
+    	</div>
+    </dialog>
+    <dialog id="join-rejected-modal" class="modal">
+    	<div class="medieval-card modal-content">
+           <h2>Кажется, вас отклонили...</h2>
+           <p>Попробуйте подключиться в другую комнату или создайте свою.</p>
+           <button id="btn-close-rejected" class="btn-medieval">В таверну</button>
+         </div>
+    </dialog>
+    <dialog id="gameover-modal" class="modal">
+        <div class="medieval-card modal-content">
+            <h2 class="gameover-modal-msg">Игра окончена!</h2>
+            <button class="btn-close-gameover-modal btn-medieval">Вернуться в таверну</button>
+        </div>
+    </dialog>
+    <dialog id="surrender-modal" class="modal">
+        <div class="medieval-card modal-content">
+            <h2 class="surrender-modal-msg">Игра окончена!</h2>
+            <button class="btn-surrender btn-medieval">Сдаться</button>
+            <button class="btn-close-surrender-modal btn-medieval">Ну уж нет!</button>
+        </div>
+    </dialog>
+    <dialog id="cheat-sheet-modal" class="modal">
+        <div class="medieval-card modal-content">
+            <h2>🎲 Призовые комбинации</h2>
+            <div class="modal-content">
+                <ul class="dice-rules-list combo-list">
+                    <li class="dice-1"> 100 очков</li>
+		    <li class="dice-5"> 50 очков</li>
+                    <li class="dice-triple-1"> 1000 очков</li>
+                    <li class="dice-triple-any"> Номинал × 100 (напр. три 5 = 500)</li>
+                    <li class="dice-small-straight"><b>Малый стрит: </b> 500 очков</li>
+                    <li class="dice-large-straight"><b>Большой стрит: </b> 1500 очков</li>
+                </ul>
+            </div>
+            <button class="btn-close-cheat-sheet-modal btn-medieval">Продолжим..</button>
+        </div>
+    </dialog>
     <script src="config.js"></script>
     <script type="module" src="main.js"></script>
 </body>

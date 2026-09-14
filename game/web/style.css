@@ -29,6 +29,33 @@ body, button, input, dialog, select, textarea, h1, h2, h3, .medieval-card-headin
   color: #ecf0f1;
 }
 
+dialog[open] {
+ position: fixed;
+ top: 50%;
+ left: 50%;
+ transform: translate(-40%, -50%);
+ display: flex;
+ flex-direction: column;
+ z-index: 9999;
+}
+
+dialog {
+  width: 90vw;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  max-height: 90dvh;
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.75);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  z-index: 9998;
+}
+
 h1, h2, h3, .medieval-card-heading, .game-status {
   font-weight: 700;
   letter-spacing: 0.5px;
@@ -65,8 +92,9 @@ button {
 
 .btn-medieval {
   background: rgba(20, 20, 20, 0.45);
+  font-size: 18px;
   border: 2px solid #f1c40f;
-  padding: 10px;
+  padding: 6px;
   border-radius: 6px;
   transition: background 0.2s, transform 0.1s;
 }
@@ -89,15 +117,16 @@ button {
   border: none;
   border-radius: 50%;
   color: #fff;
+  font-size: 15px;
   font-weight: bold;
   text-shadow: 1px 1px 4px black, 0 0 10px rgba(0, 0, 0, 0.9);
   box-shadow: inset 3px 3px 6px rgba(255, 255, 255, 0.3), inset -4px -4px 8px rgba(0, 0, 0, 0.6), 0 6px 10px rgba(0, 0, 0, 0.5);
   transition: transform 0.1s, box-shadow 0.1s, filter 0.2s;
 }
 
-.btn-roll { background-image: url('../pictures/btn_roll_img.png'); }
-.btn-select { background-image: url('../pictures/btn_select_img.png'); }
-.btn-bank { background-image: url('../pictures/btn_bank_img.png'); }
+.btn-roll { background-image: url('../pictures/btn_roll_img.webp'); }
+.btn-select { background-image: url('../pictures/btn_select_img.webp'); }
+.btn-bank { background-image: url('../pictures/btn_bank_img.webp'); }
 
 /* Интерактивные состояния (нажатие) */
 .btn-roll:active, .btn-bank:active, .btn-select:active {
@@ -122,15 +151,15 @@ button {
   height: 100dvh;
   width: 100%;
   background-color: #1a252f;
-  background-image: url('../pictures/table-area.jpg');
+  background-image: url('../pictures/table-area.webp');
   background-size: cover;
   background-position: center;
   position: relative;
 }
 
 .screen.hidden { display: none !important; }
-.welcome { background-image: url('../pictures/auth-screen.jpg'); }
-.lobby { background-image: url('../pictures/lobby.jpg'); }
+.welcome { background-image: url('../pictures/auth-screen.webp'); }
+.lobby { background-image: url('../pictures/lobby.webp'); }
 
 .player-area {
   display: flex;
@@ -146,8 +175,8 @@ button {
   box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
 }
 
-.self-area { background-image: url('../pictures/player_area_clean.jpg'); }
-.opponent-area { background-image: url('../pictures/opponent-area.jpg'); position: relative; }
+.self-area { background-image: url('../pictures/player_area_clean.webp'); }
+.opponent-area { background-image: url('../pictures/opponent-area.webp'); position: relative; }
 
 .table-area {
   flex-grow: 1; 
@@ -158,18 +187,10 @@ button {
   width: 100%; /* Замена 100vw */
   padding: 20px;
   gap: 15px;
-  background-image: url('../pictures/table.jpg');
+  background-image: url('../pictures/table.webp');
   background-size: cover;
   background-position: center;
   box-shadow: inset 0 0 100px rgba(0,0,0,0.8); 
-}
-
-dialog {
-  background: transparent;
-  border: none;
-  box-shadow: none;  
-  overflow: hidden;
-  max-width: 100%;
 }
 
 .medieval-card {
@@ -247,13 +268,13 @@ dialog {
  background-color: rgba(248, 233, 177, 0.55);
  box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
  }
-.rooms-list-container { height: 300px; width: 100%; overflow-y: auto; padding-inline-start: 0; list-style-type: none; margin-bottom: 5px; border-radius: 8px; border: 1px solid #915508; font-size: 13px; color: rgb(244, 236, 236); text-align: center; background-color: rgba(30, 30, 30, 0.7); background-image: url('../pictures/game-log-display.jpg'); background-size: cover; background-position: center; box-shadow: inset 0 0 50px rgba(0,0,0,0.8); }
-.rooms-list-row { display: flex; justify-content: space-between; align-items: center; font-size: 1rem; text-shadow: 1px 1px 4px black, 0 0 10px rgba(0, 0, 0, 0.8); border-bottom: 1px solid #070707; }
+.rooms-list-container { height: 300px; width: 100%; overflow-y: auto; padding-inline-start: 0; list-style-type: none; margin-bottom: 5px; border-radius: 8px; border: 1px solid #915508; font-size: 13px; color: rgb(244, 236, 236); text-align: center; background-color: rgba(30, 30, 30, 0.7); background-image: url('../pictures/game-log-display.webp'); background-size: cover; background-position: center; box-shadow: inset 0 0 50px rgba(0,0,0,0.8); }
+.rooms-list-row { display: flex; justify-content: space-evenly; align-items: center; font-size: 1rem; text-shadow: 1px 1px 4px black, 0 0 10px rgba(0, 0, 0, 0.8); border-bottom: 1px solid #070707; }
 .game-status { background: #f4e4bc; background-image: linear-gradient(to right, #d4b474, #f4e4bc 15%, #f4e4bc 85%, #d4b474); color: #130c02; padding: 12px 40px; font-weight: bold; font-size: 18px; text-align: center; border-top: 3px solid #8b4513; border-bottom: 3px solid #8b4513; border-radius: 20px / 50px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.7), inset 0 0 20px rgba(139, 69, 19, 0.4); min-width: 250px; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; }
 .game-status.visible { opacity: 1; z-index: 3; visibility: visible; }
 
 /* Меню аватара и таймер */
-#avatar-menu { position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; padding: 10px; background: rgba(20, 15, 10, 0.92); background-image: url('../pictures/game-log-display.jpg'); background-size: cover; border: 2px solid #8b4513; border-radius: 12px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(0, 0, 0, 0.7); z-index: 100; width: max-content; max-width: 90vw; }
+#avatar-menu { position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; padding: 10px; background: rgba(20, 15, 10, 0.92); background-image: url('../pictures/game-log-display.webp'); background-size: cover; border: 2px solid #8b4513; border-radius: 12px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(0, 0, 0, 0.7); z-index: 100; width: max-content; max-width: 90vw; }
 #avatar-menu button { display: flex; align-items: center; justify-content: center; width: 100%; padding: 6px 12px; margin: 0; cursor: pointer; font-family: 'Cormorant Garamond', serif; font-weight: 700; font-size: 14px; text-align: center; box-sizing: border-box; transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease; }
 #avatar-menu button:hover { transform: translateY(-2px); }
 #avatar-menu button:active { transform: translateY(1px); }
@@ -277,6 +298,7 @@ dialog {
 .toggle-auth-text { font-size: 12px; color: #bdc3c7; }
 .toggle-auth-text a { color: #f1c40f; text-decoration: none; }
 .medieval-form { display: flex; flex-direction: column; }
+.wallet-box { font-size: 18px; }
 .form-error-msg { color: red; background-color: #2c3e50; }
 .hidden { display: none!important; }
 .game-rules-content {
@@ -285,8 +307,69 @@ dialog {
  background: rgba(20, 20, 20, 0.95);
  max-width: 300px;
 }
-.combo-list { list-style-type: none; margin: 0; }
 
+.combo-list {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px; /* Расстояние между строками правил */
+}
+
+/* Настройка строк списка */
+.dice-rules-list li {
+  display: flex;
+  align-items: center; /* Центрируем кубики и текст по вертикали */
+  gap: 12px;           /* Отступ между кубиками и текстом */
+  font-size: 16px;
+  color: #fff;
+}
+
+/* Общие стили для всех Unicode-иконок */
+.dice-rules-list li::before {
+  font-size: 26px;       /* Размер кубиков */
+  color: #f1c40f;        /* Золотой цвет под стиль кнопок */
+  line-height: 1;
+  letter-spacing: -2px;  /* Сближает кубики в комбинациях, чтобы они стояли плотнее */
+  flex-shrink: 0;        /* Запрещает кубикам сжиматься на маленьких экранах */
+  text-shadow: 0 0 5px rgba(241, 196, 15, 0.4); /* Легкое золотое свечение */
+}
+
+/* Назначаем конкретные символы кубиков для каждого правила */
+.dice-1::before {
+  content: "⚀";
+}
+
+.dice-5::before {
+  content: "⚄";
+}
+
+.dice-triple-1::before {
+  content: "⚀⚀⚀";
+  font-size: 22px; /* Чуть уменьшаем размер, так как кубиков три в ряд */
+}
+
+.dice-triple-any::before {
+  content: "⚁⚂⚃"; /* Наглядная демонстрация "любых трех" */
+  font-size: 22px;
+}
+
+.dice-small-straight::before {
+  content: "⚀⚁⚂⚃⚄";
+  font-size: 18px; /* Ещё чуть меньше, чтобы длинный ряд не выбивался по ширине */
+  letter-spacing: -3px;
+}
+
+.dice-large-straight::before {
+  content: "⚀⚁⚂⚃⚄⚅";
+  font-size: 18px;
+  letter-spacing: -3px;
+}
+.leaderboard-table {
+  max-width: 300px;
+  overflow-y: auto;
+}
 /* Адаптивность (Media Queries) для мобильных устройств */
 /* Стандартные смартфоны вертикально */
 @media (max-width: 480px) {
@@ -345,4 +428,30 @@ dialog {
   }
   .table-area { background-position: bottom; }
   .dice-container { max-width: 750px; }
+}
+/* Адаптив под пропорции iPad и планшетов */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .screen {
+    max-width: 100%;
+    height: 100dvh;
+  }
+
+  .table-area {
+    padding: 15px;
+    gap: 10px;
+  }
+
+  .dice-container {
+    height: 280px;
+  }
+
+  .btn-roll, .btn-bank, .btn-select {
+    width: 95px;
+    height: 95px;
+    font-size: 14px;
+  }
+
+  .medieval-card {
+    max-width: 420px;
+  }
 }
