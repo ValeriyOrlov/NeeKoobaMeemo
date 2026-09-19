@@ -1,0 +1,346 @@
+package service
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log"
+	"net/http"
+	"net/url"
+	"strings"
+	"time"
+
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/auth/internal/model"
+	"github.com/ValeriyOrlov/NeeKoobaMeemo/auth/internal/repository"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
+	"gopkg.in/gomail.v2"
+)
+
+var (
+	ErrInvalidInput             = errors.New("invalid input")
+	ErrInvalidEmail             = errors.New("invalid email")
+	ErrWeakPassword             = errors.New("min 8 characters")
+	ErrShortUsername            = errors.New("min 3 characters")
+	ErrUserAlreadyExists        = errors.New("user already exists")
+	ErrInvalidCredentials       = errors.New("invalid credentials")
+	ErrInvalidRefreshToken      = errors.New("invalid refresh token")
+	ErrUserNotFound             = errors.New("user not found")
+	ErrInvalidVerificationToken = errors.New("invalid verification token")
+	ErrEmailNotVerified         = errors.New("email not verified")
+	ErrUserInGame               = errors.New("user already in game")
+)
+
+type AuthService struct {
+	userRepo       repository.UserRepository
+	tokenRepo      repository.TokenRepository
+	jwtSecret      string
+	accessTTL      time.Duration
+	refreshTTL     time.Duration
+	emailConfig    EmailConfig
+	internalSecret string
+	gameServerURL  string
+}
+
+type EmailConfig struct {
+	From     string
+	SMTPHost string
+	SMTPPort int
+	Username string
+	Password string
+	AppURL   string
+}
+
+func NewAuthService(
+	userRepo repository.UserRepository,
+	tokenRepo repository.TokenRepository,
+	jwtSecret string,
+	accessTTL time.Duration,
+	refreshTTL time.Duration,
+	emailConfig EmailConfig,
+	internalSecret string,
+	gameServerURL string,
+) *AuthService {
+	return &AuthService{
+		userRepo:       userRepo,
+		tokenRepo:      tokenRepo,
+		jwtSecret:      jwtSecret,
+		accessTTL:      accessTTL,
+		refreshTTL:     refreshTTL,
+		emailConfig:    emailConfig,
+		internalSecret: internalSecret,
+		gameServerURL:  gameServerURL,
+	}
+}
+
+func (s *AuthService) Register(ctx context.Context, email, username, password string) error {
+	if email == "" || !strings.Contains(email, "@") {
+		return ErrInvalidEmail
+	}
+	if len(username) < 3 {
+		return ErrShortUsername
+	}
+	if len(password) < 8 {
+		return ErrWeakPassword
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 12)
+	if err != nil {
+		return fmt.Errorf("hash password: %w", err)
+	}
+	token := uuid.New().String()
+
+	user := &model.User{
+		Email:             email,
+		Username:          username,
+		PasswordHash:      string(hashedPassword),
+		IsVerified:        false,
+		VerificationToken: token,
+	}
+
+	// Сохраняем пользователя в БД
+	if err := s.userRepo.CreateUnverifiedUser(ctx, user); err != nil {
+		return fmt.Errorf("create user: %w", err)
+	}
+
+	// Отправляем письмо
+	if err := s.sendVerificationEmail(email, token); err != nil {
+		// Логируем ошибку, но не прерываем процесс
+		log.Printf("send verification email: %v", err)
+	}
+
+	return nil
+}
+
+// sendVerificationEmail отправляет письмо с токеном подтверждения
+func (s *AuthService) sendVerificationEmail(to, token string) error {
+	m := gomail.NewMessage()
+	m.SetHeader("From", s.emailConfig.From)
+	m.SetHeader("To", to)
+	m.SetHeader("Subject", "Подтверждение регистрации в Таверне Ни Куба Мимо!")
+
+	link := fmt.Sprintf("%s/verify?token=%s", s.emailConfig.AppURL, token)
+	body := fmt.Sprintf(`
+        <h2>Добро пожаловать в Таверну "Ни Куба Мимо"!</h2>
+        <p>Перейдите по ссылке, чтобы подтвердить email:</p>
+        <a href="%s">%s</a>
+        <p>Если вы не регистрировались, просто проигнорируйте это письмо.</p>
+	<p>P.S. Любая обратная связь очень ценна - если у Вас есть пожелания, предложения, пишите на этот почтовый ящик с темой письма NeeKoobaMeemo. Если вдруг Вы столкнулись с неожиданным поведением во время игры - прошу Вас сообщить об этом, желательно с описанием ситуации - какой был шаг и что произошло в результате</p>
+    `, link, link)
+	m.SetBody("text/html", body)
+
+	d := gomail.NewDialer(s.emailConfig.SMTPHost, s.emailConfig.SMTPPort, s.emailConfig.Username, s.emailConfig.Password)
+	return d.DialAndSend(m)
+}
+
+func (s *AuthService) Login(ctx context.Context, email, password string) (string, string, error) {
+	user, err := s.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, repository.ErrUserNotFound) {
+			return "", "", ErrInvalidCredentials
+		}
+		return "", "", fmt.Errorf("find user by email: %w", err)
+	}
+
+	// Проверка подтверждения почты
+	if !user.IsVerified {
+		return "", "", ErrEmailNotVerified
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
+	if err != nil {
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			return "", "", ErrInvalidCredentials
+		}
+		return "", "", fmt.Errorf("comparing hash and password: %w", err)
+	}
+
+	inGame, err := s.checkGameStatus(ctx, user.Username)
+	if err != nil {
+		log.Printf("failed to check game status: %v", err)
+	} else if inGame {
+		return "", "", ErrUserInGame
+	}
+
+	accessToken, refreshToken, err := s.createTokenPair(ctx, user.ID, user.Username)
+	if err != nil {
+		return "", "", fmt.Errorf("create token pair error: %w", err)
+	}
+
+	return accessToken, refreshToken, nil
+}
+
+func (s *AuthService) Refresh(ctx context.Context, refreshTokenStr string) (newAccess, newRefresh string, err error) {
+	token, err := jwt.Parse(refreshTokenStr, func(t *jwt.Token) (interface{}, error) {
+		if t.Method != jwt.SigningMethodHS256 {
+			return nil, fmt.Errorf("unexpected signing method")
+		}
+		return []byte(s.jwtSecret), nil
+	})
+	if err != nil || !token.Valid {
+		return "", "", ErrInvalidRefreshToken
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", "", ErrInvalidRefreshToken
+	}
+	userIDFloat, ok := claims["user_id"].(float64)
+	if !ok {
+		return "", "", ErrInvalidRefreshToken
+	}
+	userID := uint(userIDFloat)
+
+	// Ищем в базе
+	_, err = s.tokenRepo.FindByToken(ctx, refreshTokenStr)
+	if errors.Is(err, repository.ErrTokenNotFound) {
+		return "", "", ErrInvalidRefreshToken
+	}
+	if err != nil {
+		return "", "", fmt.Errorf("refresh: find token: %w", err)
+	}
+
+	// Удаляем старый
+	if err := s.tokenRepo.DeleteByToken(ctx, refreshTokenStr); err != nil {
+		return "", "", fmt.Errorf("refresh: delete old token: %w", err)
+	}
+
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, repository.ErrUserNotFound) {
+			return "", "", ErrUserNotFound
+		}
+		return "", "", fmt.Errorf("find user by id error: %w", err)
+	}
+
+	accessToken, refreshToken, err := s.createTokenPair(ctx, userID, user.Username)
+	if err != nil {
+		return "", "", fmt.Errorf("create token pair error: %w", err)
+	}
+
+	return accessToken, refreshToken, nil
+}
+
+func (s *AuthService) createTokenPair(ctx context.Context, userID uint, username string) (string, string, error) {
+	accessClaims := jwt.MapClaims{
+		"user_id":  userID,
+		"username": username,
+		"exp":      time.Now().Add(s.accessTTL).Unix(),
+		"iat":      time.Now().Unix(),
+	}
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
+	signedAccess, err := accessToken.SignedString([]byte(s.jwtSecret))
+	if err != nil {
+		return "", "", fmt.Errorf("sign access token: %w", err)
+	}
+
+	jti := uuid.New().String()
+	refreshExpAt := time.Now().Add(s.refreshTTL)
+	refreshClaims := jwt.MapClaims{
+		"user_id": userID,
+		"exp":     refreshExpAt.Unix(),
+		"iat":     time.Now().Unix(),
+		"jti":     jti,
+	}
+
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
+	signedRefresh, err := refreshToken.SignedString([]byte(s.jwtSecret))
+	if err != nil {
+		return "", "", fmt.Errorf("sign refresh token: %w", err)
+	}
+
+	refreshModel := model.RefreshToken{
+		UserID:    userID,
+		Token:     signedRefresh,
+		ExpiresAt: refreshExpAt,
+	}
+
+	err = s.tokenRepo.Create(ctx, &refreshModel)
+	if err != nil {
+		return "", "", fmt.Errorf("adding refresh token to bd: %w", err)
+
+	}
+	return signedAccess, signedRefresh, nil
+}
+
+func (s *AuthService) Logout(ctx context.Context, refreshTokenStr string) error {
+	_, err := s.tokenRepo.FindByToken(ctx, refreshTokenStr)
+	if err != nil {
+		if errors.Is(err, repository.ErrTokenNotFound) {
+			return nil
+		}
+		return fmt.Errorf("logout error: %w", err)
+	}
+	if err := s.tokenRepo.DeleteByToken(ctx, refreshTokenStr); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *AuthService) VerifyEmail(ctx context.Context, token string) (string, string, *model.User, error) {
+	// 1. Ищем пользователя по токену
+	user, err := s.userRepo.FindByVerificationToken(ctx, token)
+	if err != nil {
+		if errors.Is(err, repository.ErrUserNotFound) {
+			return "", "", nil, ErrInvalidVerificationToken
+		}
+		return "", "", nil, fmt.Errorf("find token: %w", err)
+	}
+
+	// 2. Если пользователь уже подтвержден, не возвращаем ошибку
+	if user.IsVerified {
+		accessToken, refreshToken, err := s.createTokenPair(ctx, user.ID, user.Username)
+		if err != nil {
+			return "", "", nil, err
+		}
+		return accessToken, refreshToken, &user, nil
+	}
+
+	// 3. Активируем пользователя
+	if err := s.userRepo.VerifyUser(ctx, token); err != nil {
+		return "", "", nil, fmt.Errorf("verify user: %w", err)
+	}
+
+	user.IsVerified = true
+
+	accessToken, refreshToken, err := s.createTokenPair(ctx, user.ID, user.Username)
+	if err != nil {
+		return "", "", nil, err
+	}
+
+	return accessToken, refreshToken, &user, nil
+}
+
+func (s *AuthService) checkGameStatus(ctx context.Context, username string) (bool, error) {
+	reqURL := fmt.Sprintf("%s/internal/player-status?username=%s", s.gameServerURL, url.QueryEscape(username))
+	fmt.Println("reqURL: ", reqURL)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+	if err != nil {
+		return false, err
+	}
+
+	req.Header.Set("X-Internal-Secret", strings.TrimSpace(s.internalSecret))
+
+	client := &http.Client{Timeout: 2 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		// Если игровой сервер недоступен, логируем и решаем пропускать или нет
+		return false, fmt.Errorf("game status service error: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return false, fmt.Errorf("game status request failed with status: %d", resp.StatusCode)
+	}
+	var result struct {
+		InGame bool `json:"in_game"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return false, err
+	}
+
+	return result.InGame, nil
+}
