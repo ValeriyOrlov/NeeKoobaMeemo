@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/ValeriyOrlov/NeeKoobaMeemo/game/internal/game"
 	"github.com/golang-jwt/jwt"
@@ -17,7 +16,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func ServeWs(w http.ResponseWriter, r *http.Request, lobby *game.Lobby) {
+func ServeWs(w http.ResponseWriter, r *http.Request, lobby *game.Lobby, jwtSecret []byte) {
 	// 1. Получаем токен из URL параметров (ws://localhost:8080/ws?token=eyJ...)
 	tokenStr := r.URL.Query().Get("token")
 
@@ -25,8 +24,6 @@ func ServeWs(w http.ResponseWriter, r *http.Request, lobby *game.Lobby) {
 		http.Error(w, "Token is required", http.StatusUnauthorized)
 		return
 	}
-
-	jwtSecret := []byte(os.Getenv("JWT_SECRET"))
 
 	// 3. Парсим и валидируем токен
 	token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
