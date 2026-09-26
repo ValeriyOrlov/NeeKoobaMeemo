@@ -47,6 +47,8 @@ type Room struct {
 	//Подключающийся игрок
 	PendingClient *Client
 	PendingPlayer string
+
+	ReservedSlots int // Временные слоты для игроков в процессе оплаты
 }
 
 func NewRoom(id string, lobby *Lobby, betAmount int, targetScore int, store economy.PlayerStore) *Room {
@@ -102,7 +104,8 @@ func (r *Room) AddClient(client *Client) {
 	}
 	// Если игрок новый - считываем золото транзакций до добавления в активный состав
 	if !found {
-		if len(r.Players) >= 2 {
+		// Учитываем и текущих игроков, и тех, кто сейчас оплачивает вход
+		if len(r.Players)+r.ReservedSlots >= 2 {
 			r.Mu.Unlock()
 			r.sendToClient(client, models.EventMessage{Type: "ERROR", Message: "Комната заполнена!"})
 			client.Conn.Close()
@@ -127,10 +130,15 @@ func (r *Room) AddClient(client *Client) {
 			r.Mu.Unlock()
 			return
 		}
-
-		// Вызываем списание вне жесткой блокировки состояния комнаты
+		// Бронируем место ПЕРЕД блокировкой
+		r.ReservedSlots++
 		r.Mu.Unlock()
+
 		if err := r.Store.DeductBalance(playerName, r.BetAmount); err != nil {
+			r.Mu.Lock()
+			r.ReservedSlots-- // Снимаем бронь при ошибке оплаты
+			r.Mu.Unlock()
+
 			r.sendToClient(client, models.EventMessage{
 				Type:    "ERROR",
 				Message: "Недостаточно золота для входа в игру!",
@@ -139,7 +147,8 @@ func (r *Room) AddClient(client *Client) {
 			return
 		}
 		r.Mu.Lock()
-		r.Players = append(r.Players, playerName)
+		r.ReservedSlots--                         // Снимаем бронь при ошибке оплаты
+		r.Players = append(r.Players, playerName) // Добавляем в основной состав
 	}
 
 	r.Clients[client] = true
@@ -217,6 +226,9 @@ func (r *Room) Broadcast(event models.EventMessage) {
 		select {
 		case client.Send <- data:
 		default:
+			// Если буфер переполнен, закрываем соединение.
+			// Это приведет к ошибке в ReadPump и штатному вызову Leave(client)
+			client.Conn.Close()
 			delete(r.Clients, client)
 		}
 	}
@@ -455,6 +467,12 @@ func (r *Room) Leave(client *Client) {
 
 		if isEmpty {
 			r.lobby.RemoveRoom(r.ID)
+			r.stopTurnTimerLocked() // Останавливаем основной таймер хода
+			// Очищаем таймеры отключений
+			for k, t := range r.Disconnects {
+				t.Stop()
+				delete(r.Disconnects, k)
+			}
 		} else {
 			r.Broadcast(models.EventMessage{
 				Type:    "PLAYER_LEFT",
