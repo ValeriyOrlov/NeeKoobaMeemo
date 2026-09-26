@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/ValeriyOrlov/NeeKoobaMeemo/game/internal/economy"
 	"github.com/ValeriyOrlov/NeeKoobaMeemo/game/internal/game"
@@ -18,8 +19,8 @@ func HandleVerify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	authServerURL := fmt.Sprintf("%s/verify?token=%s", os.Getenv("AUTH_SERVER_URL"), token)
-
-	resp, err := http.Get(authServerURL)
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Get(authServerURL)
 	if err != nil {
 		renderVerificationPage(w, false, "Таверна временно недоступна. Ошибка связи с сервером авторизации.")
 		return
