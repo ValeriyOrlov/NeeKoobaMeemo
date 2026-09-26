@@ -64,6 +64,17 @@ func NewRoom(id string, lobby *Lobby, betAmount int, targetScore int, store econ
 }
 
 func (r *Room) sendToClient(client *Client, event models.EventMessage) {
+	// ЗАЩИТА: предотвращаем панику при записи в закрытый канал
+	defer func() {
+		if err := recover(); err != nil {
+			log.Printf("Перехвачена паника при отправке клиенту %s: %v", client.PlayerName, err)
+		}
+	}()
+
+	if client == nil || client.Send == nil {
+		return
+	}
+
 	data, err := json.Marshal(event)
 	if err != nil {
 		log.Printf("Ошибка маршаллинга сообщения: %v", err)
@@ -73,7 +84,7 @@ func (r *Room) sendToClient(client *Client, event models.EventMessage) {
 	select {
 	case client.Send <- data:
 	default:
-		log.Printf("Не удалось отправить сообщение клиенту %s: буфер переполнен или канал закрыт", client.PlayerName)
+		log.Printf("Не удалось отправить сообщение клиенту %s: буфер переполнен", client.PlayerName)
 	}
 }
 
@@ -259,7 +270,6 @@ func (r *Room) resetTurnTimerLocked() {
 					winner bool
 					delta  int
 				}{pName, isWinner, moneyDelta})
-				r.Store.AddGameResult(pName, isWinner, moneyDelta)
 			}
 
 			events = append(events, models.EventMessage{
@@ -359,6 +369,14 @@ func (r *Room) finishGameBySurrenderLocked(surrenderedPlayer string, reason stri
 }
 
 func (r *Room) StartGame() {
+	r.Mu.Lock()
+
+	// ЗАЩИТА: Проверяем, что игроков действительно двое
+	if len(r.Players) < 2 {
+		fmt.Println("Попытка начать игру, но игроков меньше двух!")
+		r.Mu.Unlock()
+		return // Прерываем старт игры, предотвращая panic
+	}
 	// Считывание данных профилей перед блокировкой состояния
 	player1Profile := r.Store.GetProfile(r.Players[0])
 	player2Profile := r.Store.GetProfile(r.Players[1])
@@ -373,7 +391,6 @@ func (r *Room) StartGame() {
 		avatar2 = "monk"
 	}
 
-	r.Mu.Lock()
 	r.IsStarted = true
 	r.CurrentTurn = 0
 	r.Pot = r.BetAmount * len(r.Players)
@@ -404,7 +421,6 @@ func (r *Room) StartGame() {
 func (r *Room) Leave(client *Client) {
 	r.Mu.Lock()
 
-	// Безопасное удаление: закрываем канал только 1 раз здесь, чтобы избежать паники
 	if _, ok := r.Clients[client]; ok {
 		delete(r.Clients, client)
 		close(client.Send)
@@ -412,10 +428,29 @@ func (r *Room) Leave(client *Client) {
 	isEmpty := len(r.Clients) == 0
 	playerName := client.PlayerName
 
-	// Если игра ЕЩЕ НЕ началась (кто-то вышел из лобби до старта)
+	// ЗАЩИТА: Очищаем ожидающего игрока, если отключился именно он
+	if r.PendingClient == client {
+		r.PendingClient = nil
+		r.PendingPlayer = ""
+	}
+
 	if !r.IsStarted {
-		// Если комната пуста до старта игры — возвращаем взнос первому подключившемуся игроку
-		r.Store.UpdateBalance(playerName, r.BetAmount)
+		// ЗАЩИТА: Проверяем, платил ли игрок взнос (находится ли в r.Players)
+		isPaid := false
+		var remainingPlayers []string
+
+		for _, p := range r.Players {
+			if p == playerName {
+				isPaid = true
+			} else {
+				remainingPlayers = append(remainingPlayers, p)
+			}
+		}
+
+		if isPaid {
+			r.Store.UpdateBalance(playerName, r.BetAmount)
+			r.Players = remainingPlayers // Корректно убираем игрока из массива
+		}
 		r.Mu.Unlock()
 
 		if isEmpty {
@@ -478,22 +513,40 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 			r.Mu.Unlock()
 			return
 		}
-		r.Mu.Unlock() // Отпускаем мьютекс для транзакции
-		if err := r.Store.DeductBalance(r.PendingPlayer, r.BetAmount); err != nil {
-			r.sendToClient(r.PendingClient, models.EventMessage{Type: "ERROR", Message: "У игрока недостаточно золота!"})
-			r.PendingClient.Conn.Close()
+
+		// ЗАЩИТА: Фиксируем локальные копии до снятия мьютекса
+		pPlayer := r.PendingPlayer
+		pClient := r.PendingClient
+
+		r.PendingPlayer = ""
+		r.PendingClient = nil
+
+		r.Mu.Unlock()
+
+		if err := r.Store.DeductBalance(pPlayer, r.BetAmount); err != nil {
+			r.sendToClient(pClient, models.EventMessage{Type: "ERROR", Message: "У игрока недостаточно золота!"})
+			if pClient != nil && pClient.Conn != nil {
+				pClient.Conn.Close()
+			}
+
 			r.Mu.Lock()
-			r.PendingClient = nil
-			r.PendingPlayer = ""
+			// Сбрасываем ожидающего, только если он не сменился во время транзакции
+			if r.PendingPlayer == pPlayer {
+				r.PendingClient = nil
+				r.PendingPlayer = ""
+			}
 			r.Mu.Unlock()
 			return
 		}
 
 		r.Mu.Lock()
-		r.Players = append(r.Players, r.PendingPlayer)
-		r.Clients[r.PendingClient] = true
-		r.PendingClient = nil
-		r.PendingPlayer = ""
+		r.Players = append(r.Players, pPlayer)
+		r.Clients[pClient] = true
+
+		if r.PendingPlayer == pPlayer {
+			r.PendingClient = nil
+			r.PendingPlayer = ""
+		}
 		r.Mu.Unlock()
 		r.StartGame()
 		return
@@ -503,14 +556,20 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 			r.Mu.Unlock()
 			return
 		}
-		r.sendToClient(r.PendingClient, models.EventMessage{Type: "JOIN_REJECTED"})
-		r.PendingClient.Conn.Close()
+
+		pClient := r.PendingClient
 		r.PendingClient = nil
 		r.PendingPlayer = ""
 		r.Mu.Unlock()
+
+		r.sendToClient(pClient, models.EventMessage{Type: "JOIN_REJECTED"})
+		if pClient != nil && pClient.Conn != nil {
+			pClient.Conn.Close()
+		}
 		return
 	}
-	// Если игра ещё не началась (ждём второго игрока)
+
+	// 1. Если игра ещё не началась
 	if !r.IsStarted {
 		r.Mu.Unlock()
 		r.sendToClient(client, models.EventMessage{Type: "ERROR", Message: "Ожидаем второго игрока..."})
@@ -525,8 +584,8 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 		return
 	}
 
-	// 3. Выполнение действий
-	var events []models.EventMessage // список событий для рассылки
+	// 3. Объявление переменных
+	var events []models.EventMessage
 	var gameResults []struct {
 		player string
 		winner bool
@@ -538,6 +597,12 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 		if r.HasRolled {
 			r.Mu.Unlock()
 			r.sendToClient(client, models.EventMessage{Type: "ERROR", Message: "Бросок уже сделан! Сначала отложите призовые кубики."})
+			return
+		}
+		// Защита от броска с пустым столом (если игрок очистил стол, но не получил переброс)
+		if r.DiceCount <= 0 {
+			r.Mu.Unlock()
+			r.sendToClient(client, models.EventMessage{Type: "ERROR", Message: "У вас не осталось кубиков для броска! Вы можете только забанковать очки."})
 			return
 		}
 		r.Dice = RollDice(r.DiceCount)
@@ -585,31 +650,50 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 			return
 		}
 
-		// 2. Считаем очки
-		counts := CountDice(action.Dice)
-		addedScore := CalculateScore(counts)
+		// 2. Считаем очки и проверяем наличие мусорных кубиков
+		addedScore, invalidDice := CalculateScore(action.Dice)
 
+		if len(invalidDice) > 0 {
+			r.Mu.Unlock()
+			r.sendToClient(client, models.EventMessage{
+				Type:    "ERROR",
+				Message: fmt.Sprintf("Непризовые кубики: %v. Нужно выбрать только призовые комбинации!", invalidDice),
+			})
+			return
+		}
 		if addedScore == 0 {
 			r.Mu.Unlock()
 			r.sendToClient(client, models.EventMessage{Type: "ERROR", Message: "Эти кубики не приносят очков!"})
 			return
 		}
 
-		// 3. Обновляем состояние
+		// 3. Обновляем состояние комнаты
 		r.Dice = remainingDice
 		r.RoundScore += addedScore
 		r.DiceCount -= len(action.Dice)
 		r.HasRolled = false
 
-		// 4. Проверка на Мааае почтение
+		// 4. Проверка на "Мааае почтение"
 		if len(r.Dice) == 0 {
-			r.DiceCount = 6
-			events = append(events, models.EventMessage{
-				Type:         "MY_RESPECTS",
-				Message:      "Мааааё почтение! Бросайте ещё 6 кубиков!",
-				Score:        r.RoundScore,
-				ActivePlayer: activePlayer,
-			})
+			// Бонусный переброс дается ТОЛЬКО если выбрано 6 кубиков в один клик
+			if len(action.Dice) == 6 {
+				r.DiceCount = 6
+				events = append(events, models.EventMessage{
+					Type:         "MY_RESPECTS",
+					Message:      "Мааааё почтение! Бросайте ещё 6 кубиков!",
+					Score:        r.RoundScore,
+					ActivePlayer: activePlayer,
+				})
+			} else {
+				// Стол очищен постепенно. Переброса нет, игрок обязан забанковать очки.
+				events = append(events, models.EventMessage{
+					Type:         "DICE_SELECTED",
+					Message:      "Кубики закончились. Забанкуйте полученные очки.",
+					Dice:         r.Dice,
+					Score:        r.RoundScore,
+					ActivePlayer: activePlayer,
+				})
+			}
 		} else {
 			events = append(events, models.EventMessage{
 				Type:         "DICE_SELECTED",
@@ -618,22 +702,31 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 				ActivePlayer: activePlayer,
 			})
 		}
+
 	case "BANK":
 		// Если игрок выделил кубики прямо перед нажатием "В банк", обрабатываем их автоматически
 		if len(action.Dice) > 0 {
 			remainingDice, valid := removeSelectedDice(r.Dice, action.Dice)
 			if !valid {
 				r.Mu.Unlock()
-				r.sendToClient(client, models.EventMessage{Type: "ERROR", Message: "Ошибка: попытка выбрать неверные кубики!"})
+				r.sendToClient(client, models.EventMessage{Type: "ERROR", Message: "Ошибка: попытка выбрать кубики, которых нет на столе!"})
 				return
 			}
 
-			counts := CountDice(action.Dice)
-			addedScore := CalculateScore(counts)
+			addedScore, invalidDice := CalculateScore(action.Dice)
+
+			if len(invalidDice) > 0 {
+				r.Mu.Unlock()
+				r.sendToClient(client, models.EventMessage{
+					Type:    "ERROR",
+					Message: fmt.Sprintf("Непризовые кубики: %v. Вы не можете добавить их в банк!", invalidDice),
+				})
+				return
+			}
 
 			if addedScore == 0 {
 				r.Mu.Unlock()
-				r.sendToClient(client, models.EventMessage{Type: "ERROR", Message: "Эти кубики не приносят очков!"})
+				r.sendToClient(client, models.EventMessage{Type: "ERROR", Message: "Выбранные кубики не приносят очков!"})
 				return
 			}
 
@@ -642,10 +735,9 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 			r.DiceCount -= len(action.Dice)
 		}
 
-		// Если очки раунда всё ещё равны 0 (ничего не выбрано), сообщаем о необходимости выбрать кубики
 		if r.RoundScore == 0 {
 			r.Mu.Unlock()
-			r.sendToClient(client, models.EventMessage{Type: "ERROR", Message: "Необходимо выбрать призовые кубики!"})
+			r.sendToClient(client, models.EventMessage{Type: "ERROR", Message: "Необходимо набрать очки перед тем, как положить их в банк!"})
 			return
 		}
 
@@ -703,6 +795,10 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 	}
 
 	r.Mu.Unlock() // Освобождаем мьютекс до рассылки
+
+	for _, res := range gameResults {
+		r.Store.AddGameResult(res.player, res.winner, res.delta)
+	}
 
 	// Рассылаем все накопленные события всем игрокам
 	for _, e := range events {
