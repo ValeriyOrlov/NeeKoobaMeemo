@@ -29,6 +29,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Ошибка при загрузке конфигурации: %v", err)
 	}
+	secretBytes := []byte(cfg.JWTSecret)
 
 	// 2. Инициализация базы данных с DSN из конфигуратора
 	database, err := db.InitDB(cfg.DatabaseDSN)
@@ -51,12 +52,14 @@ func main() {
 	http.Handle("/pictures/", http.StripPrefix("/pictures/", http.FileServer(http.Dir(picturesDir))))
 	http.Handle("/", http.FileServer(http.Dir(webDir)))
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		ws.ServeWs(w, r, lobby)
+		ws.ServeWs(w, r, lobby, secretBytes)
 	})
 	http.HandleFunc("/verify", func(w http.ResponseWriter, r *http.Request) {
 		handlers.HandleVerify(w, r)
 	})
-	http.HandleFunc("/api/profile", handlers.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+
+	authMiddleware := handlers.AuthMiddleware(secretBytes)
+	http.HandleFunc("/api/profile", authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		// Извлекаем имя пользователя из токена
 		username := r.Context().Value("username").(string)
 		// Получаем профиль игрока из хранилища
@@ -68,7 +71,7 @@ func main() {
 	}))
 
 	http.HandleFunc("/api/leaderboard", handlers.LeaderboardHandler(playerStore))
-	http.HandleFunc("/api/rooms", handlers.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/rooms", authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
 			handlers.GetRoomsHandler(lobby)(w, r)
@@ -79,8 +82,8 @@ func main() {
 		}
 	}))
 
-	http.HandleFunc("/api/rooms/join", handlers.AuthMiddleware(handlers.JoinRoomHandler(lobby)))
-	http.HandleFunc("/api/user/avatar", handlers.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/rooms/join", authMiddleware(handlers.JoinRoomHandler(lobby)))
+	http.HandleFunc("/api/user/avatar", authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodPost:
 			handlers.UpdateAvatarHandler(lobby.Store)(w, r)
