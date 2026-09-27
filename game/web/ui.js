@@ -84,3 +84,70 @@ export function showGameStatus(text, duration = 4000) {
     statusEl.classList.remove('visible');
   }, duration);
 }
+
+// ui.js
+
+let reconnectOverlay = null;
+
+export function showReconnectingState(attempt, delayMs, onCancelCallback) {
+  // Блокируем интерактивные элементы (кнопки броска, инпуты)
+  document.querySelectorAll('.controls-area').forEach(el => {
+    el.disabled = true;
+  });
+
+  if (!reconnectOverlay) {
+    reconnectOverlay = document.createElement('div');
+    reconnectOverlay.className = 'offline-overlay';
+    // Базовые стили для затемнения и блокировки кликов
+    reconnectOverlay.style.cssText = `
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7); z-index: 1000;
+      display: flex; flex-direction: column; 
+      align-items: center; justify-content: center;
+      color: white; font-family: sans-serif;
+    `;
+    document.getElementById('game-screen').appendChild(reconnectOverlay);
+  }
+
+  const seconds = Math.round(delayMs / 1000);
+  reconnectOverlay.innerHTML = `
+    <h3>⚠️ Связь потеряна</h3>
+    <p>Попытка переподключения #${attempt} через ${seconds} сек...</p>
+    <button id="abort-reconnect-btn" style="margin-top: 15px; padding: 8px 16px; background: #ff4444; color: white; border: none; cursor: pointer;">
+      Покинуть игру
+    </button>
+  `;
+
+  document.getElementById('abort-reconnect-btn').onclick = () => {
+    hideReconnectingState();
+    if (onCancelCallback) onCancelCallback();
+  };
+}
+
+export function hideReconnectingState() {
+  if (reconnectOverlay) {
+    reconnectOverlay.remove();
+    reconnectOverlay = null;
+  }
+  
+  // Разблокируем элементы
+  document.querySelectorAll('.controls-area').forEach(el => {
+    el.disabled = false;
+  });
+}
+
+export function showOpponentOfflineWarning(onLeaveCallback) {
+  // Аналогичный оверлей, но для ожидания противника
+  showReconnectingState('Ожидание', 60000, onLeaveCallback);
+  reconnectOverlay.innerHTML = `
+    <h3>⚠️ Противник отключился</h3>
+    <p>Ожидаем возвращения игрока (максимум 60 секунд)...</p>
+    <button id="leave-abandoned-game-btn" style="margin-top: 15px; padding: 8px 16px; background: #ff4444; color: white; border: none; cursor: pointer;">
+      Выйти в лобби
+    </button>
+  `;
+  document.getElementById('leave-abandoned-game-btn').onclick = () => {
+    hideReconnectingState();
+    if (onLeaveCallback) onLeaveCallback();
+  };
+}

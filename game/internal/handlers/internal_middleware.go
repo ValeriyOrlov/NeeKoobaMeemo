@@ -18,6 +18,7 @@ func InternalAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		if expectedSecret == "" || incomingSecret != expectedSecret {
 			http.Error(w, `{"error": "unauthorized internal request"}`, http.StatusUnauthorized)
+			log.Printf("🔍 [InternalAuth] Expected: %q | Incoming: %q", expectedSecret, incomingSecret)
 			return
 		}
 

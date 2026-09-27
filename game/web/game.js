@@ -11,17 +11,14 @@ window.addEventListener('DOMContentLoaded', () => {
         sfx.loadSound('roll', '../sounds/dice.wav');
         sfx.loadSound('bank', '../sounds/bank.wav');
         sfx.loadSound('select', '../sounds/writingPen.wav');
+        sfx.loadSound('sadness', '../sounds/sad-trumpet.mp3');
 
         document.removeEventListener('pointerdown', unlockAudio);
     };
 
     document.addEventListener('pointerdown', unlockAudio);
 });
-// Звуковые эффекты
-/*const sfxRoll = new Audio('../sounds/dice.wav');
-const sfxBank = new Audio('../sounds/bank.wav');
-const sfxSelect = new Audio('../sounds/writingPen.wav');
-*/
+
 let socket;
 let isMyTurn = false;
 let isZonkPending = false;
@@ -55,6 +52,7 @@ const opponentBankEl = document.getElementById('opponent-bank');
 const opponentSelectedEl = document.getElementById('opponent-selected');
 const selfNameEl = document.getElementById('self-name');
 const opponentNameEl = document.getElementById('opponent-name');
+const selectedScoreValue = document.getElementById('selected-score-value');
 
 const gameLogContainer = document.querySelector('.game-log-container');
 
@@ -89,6 +87,9 @@ const btnRejectJoin = document.getElementById('btn-reject-join');
 const joinRejectedModal = document.getElementById('join-rejected-modal');
 const btnCloseRejected = document.getElementById('btn-close-rejected');
 
+const zonkModal = document.getElementById('zonk-modal');
+let zonkTimeout = null; // Таймер для автоматического закрытия
+
 btnAcceptJoin.addEventListener('click', () => {
     sendAction('ACCEPT_JOIN');
     joinRequestModal.close();
@@ -107,6 +108,7 @@ btnCloseRejected.addEventListener('click', () => {
 let selectedDiceIndices = new Set();
 let currentDiceValues = [];
 let myUsername = "";
+let currentSelectedScore = 0;
 
 function getUsernameFromToken() {
     const token = localStorage.getItem('game_token');
@@ -160,9 +162,87 @@ const printLog = (logMessage) => {
     container.scrollTop = container.scrollHeight;
 };
 
+function calculateSelectedDiceScore(selectedDice) {
+    const counts = {};
+    for (const val of selectedDice) {
+        counts[val] = (counts[val] || 0) + 1;
+    }
+
+    let points = 0;
+
+    // Вспомогательная функция для безопасной проверки наличия ключа
+    const getCount = (num) => counts[num] || 0;
+
+    // 1. Большой стрит (1-2-3-4-5-6)
+    if (getCount(1) >= 1 && getCount(2) >= 1 && getCount(3) >= 1 && 
+        getCount(4) >= 1 && getCount(5) >= 1 && getCount(6) >= 1) {
+        points += 1500;
+        for (let i = 1; i <= 6; i++) {
+            counts[i]--;
+        }
+    } else {
+        // 2. Малый стрит (1-2-3-4-5)
+        if (getCount(1) >= 1 && getCount(2) >= 1 && getCount(3) >= 1 && 
+            getCount(4) >= 1 && getCount(5) >= 1) {
+            points += 500;
+            for (let i = 1; i <= 5; i++) {
+                counts[i]--;
+            }
+        } 
+        // 3. Малый стрит (2-3-4-5-6)
+        else if (getCount(2) >= 1 && getCount(3) >= 1 && getCount(4) >= 1 && 
+                 getCount(5) >= 1 && getCount(6) >= 1) {
+            points += 500;
+            for (let i = 2; i <= 6; i++) {
+                counts[i]--;
+            }
+        }
+    }
+
+    // 4. Тройки и шестерки одинаковых кубиков
+    for (const numStr in counts) {
+        const num = Number(numStr);
+        const count = counts[num];
+        const triples = Math.floor(count / 3);
+        
+        if (triples > 0) {
+            if (num === 1) {
+                points += triples * 1000;
+            } else {
+                points += triples * num * 100;
+            }
+            counts[num] -= triples * 3;
+        }
+    }
+
+    // 5. Подсчет оставшихся единиц и пятерок
+    if (getCount(1) > 0) {
+        points += counts[1] * 100;
+        counts[1] = 0;
+    }
+    if (getCount(5) > 0) {
+        points += counts[5] * 50;
+        counts[5] = 0;
+    }
+
+    // 6. Сбор всех оставшихся (непризовых) кубиков
+    const invalidDice = [];
+    for (const numStr in counts) {
+        const num = Number(numStr);
+        const remaining = counts[num];
+        for (let i = 0; i < remaining; i++) {
+            invalidDice.push(num);
+        }
+    }
+
+    return [points, invalidDice];
+}
+
 function resetSelectedScores() {
     selfSelectedEl.innerText = "0";
     opponentSelectedEl.innerText = "0";
+    currentSelectedScore = 0;
+    if (selectedScoreValue) selectedScoreValue.textContent = "0";
 }
 
 // Получение значений выделенных кубиков по их индексам
@@ -170,20 +250,37 @@ function getSelectedDiceValues() {
     return Array.from(selectedDiceIndices).map(idx => currentDiceValues[idx]);
 }
 
+// Функция обновления текста и видимости счетчика
+function updateSelectedScoreDisplay() {
+    // Собираем значения всех кубиков, которые отмечены как выбранные (например, имеют класс .selected)
+const selectedValues = getSelectedDiceValues();
+    
+    if (selectedValues.length > 0) {
+        // Получаем очки из первого элемента возвращаемого массива
+        const [score, invalidDice] = calculateSelectedDiceScore(selectedValues);
+        currentSelectedScore = score;
+        
+        if (selectedScoreValue) {
+            selectedScoreValue.textContent = currentSelectedScore;
+        }
+    } else {
+        currentSelectedScore = 0;
+        if (selectedScoreValue) {
+            selectedScoreValue.textContent = "0";
+        }
+    }
+}
+
 // === НАЖАТИЯ НА КНОПКИ УПРАВЛЕНИЯ ===
 btnRoll.addEventListener('click', () => {
-   /* sfxRoll.currentTime = 0;
-    sfxRoll.play();*/
-    sfx.play('roll');
     selectedDiceIndices.clear();
     sendAction('ROLL');
+    currentSelectedScore = 0;
+    if (selectedScoreValue) selectedScoreValue.textContent = "0";
 });
 
 // Кнопка "В банк" — сохраняет очки и передает ход сопернику
 btnBank.addEventListener('click', () => {
-   /* sfxBank.currentTime = 0;
-    sfxBank.play();*/
-    sfx.play('bank');
     const selectedVals = getSelectedDiceValues();
     sendAction('BANK', selectedVals);
     selectedDiceIndices.clear();
@@ -198,11 +295,9 @@ btnSelect.addEventListener('click', () => {
         printLog(warningMsg);
         return;
     }
-    /*	
-    sfxSelect.currentTime = 0;
-    sfxSelect.play();*/
-    sfx.play('select');	
     sendAction('SELECT_DICE', selectedVals);
+    currentSelectedScore = 0;
+    if (selectedScoreValue) selectedScoreValue.textContent = "0";
 });
 
 // КНОПКИ МЕНЮ ПОЛЬЗОВАТЕЛЯ
@@ -329,6 +424,7 @@ function renderDice(diceArray, isNewRoll = true) {
                 } else {
                     selectedDiceIndices.add(idx);
                 }
+                updateSelectedScoreDisplay();
             });
         });
     } else {
@@ -365,7 +461,6 @@ function renderDice(diceArray, isNewRoll = true) {
                 const newDiceEl = diceEl.cloneNode(true);
                 diceEl.parentNode.replaceChild(newDiceEl, diceEl);
                 
-                // Замена click на pointerdown
                 newDiceEl.addEventListener('pointerdown', (e) => {
                     e.preventDefault();
                     if (!isMyTurn) return;
@@ -378,6 +473,7 @@ function renderDice(diceArray, isNewRoll = true) {
                     } else {
                         selectedDiceIndices.add(newIdx);
                     }
+                    updateSelectedScoreDisplay();
                 });
             });
         }, 310);
@@ -479,6 +575,7 @@ export function handleGameEvent(msg) {
             break;
 
         case "DICE_ROLLED":
+            sfx.play('roll');
             renderDice(msg.dice, true);
             updateScores(msg.active_player, msg.score);
             toggleControls(msg.active_player === myUsername);
@@ -486,6 +583,7 @@ export function handleGameEvent(msg) {
             break;
 
         case "DICE_SELECTED":
+            sfx.play('select');	
             renderDice(msg.dice, false);
             updateScores(msg.active_player, msg.score);
             printLog(msg.message || `🎯 Игрок ${msg.active_player} отложил кубики (очков в раунде: ${msg.score ?? 0})`);
@@ -494,14 +592,35 @@ export function handleGameEvent(msg) {
         case "ZONK":
             isZonkPending = true;
             renderDice(msg.dice, true);
-            showGameStatus('💥 Пупупууу :/ Очки раунда сгорели.');
             toggleControls(false);
             printLog(`🎲 Игрок ${msg.active_player} бросил кубики: [${msg.dice.join(', ')}]`);
-            printLog(`💥 Пупупууу :/ У игрока ${msg.active_player} не выпало призовых костей.`);
+            // === ПОКАЗ МОДАЛКИ ZONK НА 3 СЕКУНДЫ ===
+            if (zonkModal) {
+                if (zonkTimeout) clearTimeout(zonkTimeout);
+                    zonkTimeout = setTimeout(() => {
+                    // Перезапускаем GIF, сбрасывая его источник (чтобы анимация всегда играла с начала)
+                    const zonkImg = zonkModal.querySelector('.zonk-gif');
+                    if (zonkImg) {
+                        const currentSrc = zonkImg.src.split('?')[0];
+                        zonkImg.src = `${currentSrc}?t=${Date.now()}`;
+                    }
+                    sfx.play('sadness');
+                    printLog(`💥 Пупупууу :/ У игрока ${msg.active_player} не выпало призовых костей.`);
+                    zonkModal.showModal();
+                    
+                    zonkTimeout = setTimeout(() => {
+                        if (zonkModal.open) {
+                            zonkModal.close();
+                        }
+                    }, 3000);
+                },2000)
+                
+            }
             break;
 
         case "TURN_CHANGED":
-const processTurnChange = () => {
+            sfx.play('bank');
+            const processTurnChange = () => {
                 selectedDiceIndices.clear();
                 diceContainer.innerHTML = '';
                 updateBanks(msg.banks);
@@ -544,8 +663,8 @@ const processTurnChange = () => {
             setIsGameActive(false);
             stopVisualTimer();
             toggleControls(false);
-	    diceContainer.innerHTML = '';
-	    gameLogContainer.innerHTML = '';
+            diceContainer.innerHTML = '';
+            gameLogContainer.innerHTML = '';
             printLog(msg.message || "🏆 Игра завершена!");
             gameoverModalMsg.textContent = msg.message;
             gameoverModal.showModal();
@@ -600,7 +719,7 @@ const processTurnChange = () => {
             setPlayerAvatars(msg.avatars);
             break;
 
-	case "JOIN_REQUEST":
+	    case "JOIN_REQUEST":
             joinRequestMsg.innerText = `К вам подключается игрок ${msg.message}. Впустить или отклонить?`;
             joinRequestModal.showModal();
             break;

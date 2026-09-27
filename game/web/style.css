@@ -29,31 +29,39 @@ body, button, input, dialog, select, textarea, h1, h2, h3, .medieval-card-headin
   color: #ecf0f1;
 }
 
-dialog[open] {
- position: fixed;
- top: 50%;
- left: 50%;
- transform: translate(-40%, -50%);
- display: flex;
- flex-direction: column;
- z-index: 9999;
-}
-
 dialog {
-  width: 90vw;
-  margin: 0;
-  padding: 0;
+  position: fixed;
+  inset: 0;              /* Растягивает диалог на всю ширину и высоту экрана */
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
   background: transparent;
   border: none;
   box-shadow: none;
-  max-height: 90dvh;
+  padding: 0;
+  margin: 0;
+  
+  /* Превращаем сам диалог в флекс-контейнер для идеального центра */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+dialog[open] {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 dialog::backdrop {
   background: rgba(0, 0, 0, 0.75);
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
-  z-index: 9998;
 }
 
 h1, h2, h3, .medieval-card-heading, .game-status {
@@ -194,21 +202,77 @@ button {
 }
 
 .medieval-card {
-  width: 100%;
-  max-width: 320px;
-  background: rgba(20, 20, 20, 0.36);
+  margin: auto; /* Жесткий центр */
+  display: flex;
+  flex-direction: column;
+  width: 90vw;
+  gap: 15px;
+  text-align: center;
+  background: rgba(20, 20, 20, 0.45);
   border: 3px solid #915508;
   border-radius: 12px;
   padding: 30px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  text-align: center;
+  box-sizing: border-box;
 }
 
 .modal-content {
   background: rgba(20, 20, 20, 0.95);
   max-width: 300px;
+}
+
+/* Специфичные размеры и увеличенный шрифт для модалок правил и шпаргалки */
+#rules-modal .medieval-card {
+  max-width: 800px;
+  width: 90vw;
+  max-height: 85dvh;
+  font-size: 1.2rem; /* Увеличили общий шрифт */
+}
+
+#rules-modal .game-rules-content {
+  max-width: 100%;
+  max-height: 70dvh;
+  overflow-y: auto;
+  text-align: left;
+  padding: 20px;
+}
+
+#rules-modal .dice-rules-list li {
+  font-size: 1.15rem; /* Увеличили шрифт элементов правил */
+}
+
+#cheat-sheet-modal .medieval-card {
+  max-width: 800px;
+  width: 90vw;
+  max-height: 75dvh;
+  font-size: 1.15rem;
+  padding: 5px;
+}
+
+#cheat-sheet-modal .dice-rules-list li {
+  font-size: 1.1rem;
+}
+
+/* Стили для модального окна события ZONK */
+#zonk-modal .medieval-card.zonk-modal-content {
+  width: 220px;
+  height: 220px;
+  max-width: 220px;
+  max-height: 220px;
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 15, 10, 0.95);
+  border: 3px solid #915508;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(139, 69, 19, 0.5);
+}
+
+.zonk-gif {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
 }
 
 /* Профили игроков, аватары и статистика */
@@ -225,7 +289,7 @@ button {
 .avatar-option:hover { transform: scale(1.1); border-color: #f1c40f; }
 .player-name { margin: 0; z-index: 2; font-weight: bold; }
 .stat-box { display: flex; align-items:center; justify-content: center; min-width: 120px; font-size: 16px; padding: 8px 12px; border-radius: 6px; }
-.left-stat { text-align: left; }
+.left-stat { display: flex; flex-direction: column; text-align: left; }
 .right-stat { text-align: right; }
 .profile-card { text-shadow: 1px 1px 3px black; }
 
@@ -351,12 +415,12 @@ button {
 }
 
 .dice-triple-any::before {
-  content: "⚁⚂⚃"; /* Наглядная демонстрация "любых трех" */
+  content: "⚃⚃⚃"; /* Наглядная демонстрация "любых трех" */
   font-size: 22px;
 }
 
 .dice-small-straight::before {
-  content: "⚀⚁⚂⚃⚄";
+  content: "⚀⚁⚂⚃⚄/⚁⚂⚃⚄⚅";
   font-size: 18px; /* Ещё чуть меньше, чтобы длинный ряд не выбивался по ширине */
   letter-spacing: -3px;
 }

@@ -187,7 +187,7 @@ func (r *Room) AddClient(client *Client) {
 
 		// Оповещаем противника, что игрок вернулся
 		r.Broadcast(models.EventMessage{
-			Type:    "SYSTEM",
+			Type:    "OPPONENT_RECONNECTED",
 			Message: fmt.Sprintf("Игрок %s вернулся в игру!", playerName),
 		})
 		return
@@ -501,7 +501,7 @@ func (r *Room) Leave(client *Client) {
 
 	// Сообщаем противнику, что игрок отвалился
 	r.Broadcast(models.EventMessage{
-		Type:         "PLAYER_DISCONNECTED",
+		Type:         "OPPONENT_OFFLINE",
 		Message:      fmt.Sprintf("Игрок %s отключился. Ожидание переподключения (60 сек)...", playerName),
 		ActivePlayer: playerName,
 	})

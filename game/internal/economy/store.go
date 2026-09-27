@@ -46,39 +46,55 @@ func (s *DBStore) GetProfile(username string) *models.PlayerProfile {
 	)
 
 	// Если игрока еще нет в БД — создаем его
-	if errors.Is(err, sql.ErrNoRows) {
-		now := time.Now()
-		insertQuery := `
-			INSERT INTO player_profiles (username, balance, wins, games, avatar, last_weekly_claim)
-			VALUES ($1, 1000, 0, 0, 'fat_cat', $2)
-			RETURNING username, balance, wins, games, avatar, last_weekly_claim`
+	if err != nil {
+		// Если игрока еще нет в БД — создаем его
+		if errors.Is(err, sql.ErrNoRows) {
+			now := time.Now()
+			insertQuery := `
+				INSERT INTO player_profiles (username, balance, wins, games, avatar, last_weekly_claim)
+				VALUES ($1, 1000, 0, 0, 'fat_cat', $2)
+				RETURNING username, balance, wins, games, avatar, last_weekly_claim`
 
-		_ = s.db.QueryRow(insertQuery, username, now).Scan(
-			&profile.Username,
-			&profile.Balance,
-			&profile.Wins,
-			&profile.Games,
-			&profile.Avatar,
-			&profile.LastWeeklyClaim,
-		)
-		return profile
+			_ = s.db.QueryRow(insertQuery, username, now).Scan(
+				&profile.Username, &profile.Balance, &profile.Wins,
+				&profile.Games, &profile.Avatar, &profile.LastWeeklyClaim,
+			)
+			return profile
+		}
+		// КРИТИЧНО: При любой другой ошибке БД (таймаут, сбой) возвращаем nil,
+		// чтобы не перезаписать прогресс нулевыми дефолтными значениями.
+		return nil
 	}
 
 	// Проверяем еженедельное подкрепление
 	if isNewWeek(profile.LastWeeklyClaim) {
+		oldClaimTime := profile.LastWeeklyClaim // Сохраняем слепок времени для оптимистичной блокировки
 		profile.LastWeeklyClaim = time.Now()
+
+		var bonusDelta int
 		if profile.Balance < 1000 {
-			profile.Balance += 500
-			if profile.Balance > 1000 {
-				profile.Balance = 1000
+			bonusDelta = 500
+			if profile.Balance+bonusDelta > 1000 {
+				bonusDelta = 1000 - profile.Balance
 			}
 		}
 
+		// Атомарно прибавляем золото и обновляем дату ТОЛЬКО если last_weekly_claim в БД не изменился
 		updateQuery := `
 			UPDATE player_profiles 
-			SET balance = $1, last_weekly_claim = $2 
-			WHERE username = $3`
-		_, _ = s.db.Exec(updateQuery, profile.Balance, profile.LastWeeklyClaim, username)
+			SET balance = balance + $1, last_weekly_claim = $2 
+			WHERE username = $3 AND last_weekly_claim = $4`
+
+		res, _ := s.db.Exec(updateQuery, bonusDelta, profile.LastWeeklyClaim, username, oldClaimTime)
+
+		// Синхронизируем баланс в памяти только если именно этот поток успешно обновил строку
+		if rowsAffected, _ := res.RowsAffected(); rowsAffected > 0 {
+			profile.Balance += bonusDelta
+		} else {
+			// Если rowsAffected == 0, значит параллельный поток уже выдал бонус долю секунды назад.
+			// Откатываем время в локальном объекте до старого значения.
+			profile.LastWeeklyClaim = oldClaimTime
+		}
 	}
 
 	return profile

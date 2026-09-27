@@ -96,6 +96,7 @@
             <div class="stats-box">
                 <div class="stat-box left-stat">
                     <span>Отложено: <span id="self-selected">0</span></span>
+                    <span>Выбрано: <span id="selected-score-value">0</span></span>
                 </div>
                 <div class="player-avatar-container">
                     <!-- Клик по картинке открывает меню -->
@@ -189,23 +190,23 @@
         <div class="medieval-card game-rules-content">
             <h2>Правила игры</h2>
             <p><b>Цель игры:</b> Первым набрать установленное количество очков - количество очков устанавливается при создании комнаты</p>
-	    <span>Игроки ходят по очереди. В начале хода нужно сделать бросок и выбрать призовые кости!</span>
+	        <span>Игроки ходят по очереди. В начале хода нужно сделать бросок и выбрать призовые кости!</span>
             <span>Призовые кости - это кости, которые приносят очки:</span>
             <span>Очки приносят единицы и пятерки, а также комбинации:</span>
             <ul class="dice-rules-list combo-list">
                 <li class="dice-1"> 100 очков</li>
                 <li class="dice-5"> 50 очков</li>
                 <li class="dice-triple-1"> 1000 очков</li>
-                <li class="dice-triple-any"> Номинал × 100 (напр. три 5 = 500)</li>
+                <li class="dice-triple-any"> Номинал × 100 (напр. три 4 = 400)</li>
                 <li class="dice-small-straight"><b>Малый стрит: </b> 500 очков</li>
                 <li class="dice-large-straight"><b>Большой стрит: </b> 1500 очков</li>
             </ul>
-	    <span>После броска необходимо отложить минимум один призовой кубик.</span>
-	    <span>Отложенные кубики убираются со стола - вы можете либо бросить оставшиеся кубики, либо положить в банк отложенную сумму. Ход заканчивается тогда, когда у вас кончились кости, либо за бросок не выпало ни одной призовой кости</span>
+	        <span>После броска необходимо отложить минимум один призовой кубик.</span>
+	        <span>Отложенные кубики убираются со стола - вы можете либо бросить оставшиеся кубики, либо положить в банк отложенную сумму. Ход заканчивается тогда, когда у вас кончились кости, либо за бросок не выпало ни одной призовой кости</span>
             <span>В последнем случае — очки раунда сгорают, ход передаётся противнику!</span>
-	    <span>Если за один бросок отложены все 6 кубиков — вы получаете право на повторный бросок всех 6 костей («Маааё почтение!»).</span>            
-	    <span>Ваш ход заканчивается и передаётся противнику сразу же после того, как Вы положите золото в банк или Вам не выпадет ни одной призовой кости.</span>
-	    <span>Для взаимодействия с противником Вы можете нажать на свой аватар и выбрать одну из предложенных реплик.</span>
+	        <span>Если за один бросок отложены все 6 кубиков — вы получаете право на повторный бросок всех 6 костей («Маааё почтение!»).</span>            
+	        <span>Ваш ход заканчивается и передаётся противнику сразу же после того, как Вы положите золото в банк или Вам не выпадет ни одной призовой кости.</span>
+	        <span>Для взаимодействия с противником Вы можете нажать на свой аватар и выбрать одну из предложенных реплик.</span>
             <button id="btn-close-rules" class="btn-medieval">Ясно-понятно...</button>
         </div>
     </dialog>
@@ -237,19 +238,24 @@
         </div>
     </dialog>
     <dialog id="cheat-sheet-modal" class="modal">
-        <div class="medieval-card modal-content">
+        <div class="medieval-card">
             <h2>🎲 Призовые комбинации</h2>
-            <div class="modal-content">
-                <ul class="dice-rules-list combo-list">
-                    <li class="dice-1"> 100 очков</li>
-		    <li class="dice-5"> 50 очков</li>
-                    <li class="dice-triple-1"> 1000 очков</li>
-                    <li class="dice-triple-any"> Номинал × 100 (напр. три 5 = 500)</li>
-                    <li class="dice-small-straight"><b>Малый стрит: </b> 500 очков</li>
-                    <li class="dice-large-straight"><b>Большой стрит: </b> 1500 очков</li>
-                </ul>
-            </div>
+            <ul class="dice-rules-list combo-list" style="text-align: left;">
+                <li class="dice-1"> 100 очков</li>
+                <li class="dice-5"> 50 очков</li>
+                <li class="dice-triple-1"> 1000 очков</li>
+                <li class="dice-triple-any"> Номинал × 100 (напр. три 4 = 400)</li>
+                <li class="dice-small-straight"><b>Малый стрит: </b> 500 очков</li>
+                <li class="dice-large-straight"><b>Большой стрит: </b> 1500 очков</li>
+            </ul>
             <button class="btn-close-cheat-sheet-modal btn-medieval">Продолжим..</button>
+        </div>
+    </dialog>
+    <dialog id="zonk-modal" class="modal">
+        <div class="medieval-card modal-content zonk-modal-content">
+            <h2>💥 Пупупууу :/</h2>
+            <p>Очки раунда сгорели...</p>
+            <img src="../pictures/sad-trumpet.gif" alt="Zonk!" class="zonk-gif">
         </div>
     </dialog>
     <script src="config.js"></script>

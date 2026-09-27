@@ -3,7 +3,6 @@ import { showScreen } from "./ui.js";
 // Получаем адреса серверов
 const gameServer = window.ENV.GAME_SERVER_URL;
 export const authServer = window.ENV.AUTH_SERVER_URL;
-console.log("AUTH_SERVER", authServer)
 
 // Находим элементы на странице
 const profileUsername = document.getElementById('profile-username');
