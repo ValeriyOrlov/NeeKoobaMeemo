@@ -34,6 +34,7 @@ type Room struct {
 
 	// Игровое состояние комнаты
 	IsStarted   bool                   // Старт игры
+	IsFinished  bool                   // Флаг завершения игры
 	CurrentTurn int                    // индекс текущего игрока (0 или 1)
 	Players     []string               // Имена двух игроков
 	Dice        []int                  // Текущие кубики на столе
@@ -270,6 +271,7 @@ func (r *Room) resetTurnTimerLocked() {
 		if r.Banks[r.CurrentTurn] >= r.TargetScore {
 			r.stopTurnTimerLocked()
 			r.IsStarted = false
+			r.IsFinished = true
 
 			for _, pName := range r.Players {
 				isWinner := (pName == activePlayer)
@@ -335,8 +337,13 @@ func (r *Room) stopTurnTimerLocked() {
 // finishGameBySurrenderLocked начисляет победу сопернику и завершает игру.
 // ВАЖНО: Принимает r.Mu заблокированным, но САМ ОСВОБОЖДАЕТ его перед вызовом Broadcast!
 func (r *Room) finishGameBySurrenderLocked(surrenderedPlayer string, reason string) {
+	// ЗАЩИТА: Если игра уже завершена или еще не началась, игнорируем повторный вызов
+	if r.IsFinished || !r.IsStarted {
+		return
+	}
 	r.stopTurnTimerLocked()
 	r.IsStarted = false
+	r.IsFinished = true
 	r.lobby.RemoveRoom(r.ID)
 
 	var winner string
@@ -446,7 +453,7 @@ func (r *Room) Leave(client *Client) {
 		r.PendingPlayer = ""
 	}
 
-	if !r.IsStarted {
+	if !r.IsStarted && !r.IsFinished {
 		// ЗАЩИТА: Проверяем, платил ли игрок взнос (находится ли в r.Players)
 		isPaid := false
 		var remainingPlayers []string
@@ -479,6 +486,11 @@ func (r *Room) Leave(client *Client) {
 				Message: fmt.Sprintf("Игрок %s покинул стол.", playerName),
 			})
 		}
+		return
+	}
+	// Если игры уже завершилась - Просто выходим, никого не ждем и деньги НЕ возвращаем
+	if r.IsFinished {
+		r.Mu.Unlock()
 		return
 	}
 
@@ -523,6 +535,11 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 		return
 
 	case "SURRENDER":
+		if !r.IsStarted || r.IsFinished {
+			r.Mu.Unlock()
+			r.sendToClient(client, models.EventMessage{Type: "ERROR", Message: "Нельзя сдаться: игра еще не началась или уже завершена!"})
+			return
+		}
 		r.finishGameBySurrenderLocked(client.PlayerName, fmt.Sprintf("Игрок %s сдался.", client.PlayerName))
 		return
 
@@ -769,6 +786,7 @@ func (r *Room) HandleAction(client *Client, action models.ActionMessage) {
 		if r.Banks[r.CurrentTurn] >= r.TargetScore {
 			r.stopTurnTimerLocked()
 			r.IsStarted = false
+			r.IsFinished = true
 			r.lobby.RemoveRoom(r.ID)
 			// 1. Выдаём куш победителю и засчитываем игру обоим
 			for _, pName := range r.Players {
